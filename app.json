@@ -4,13 +4,13 @@
     "slug": "chefiq-studio",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/studioiq-applogo.png",
     "scheme": "chefiq",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/iq-logo.png",
+      "image": "./assets/studioiq-splashscreen.png",
       "resizeMode": "contain",
-      "backgroundColor": "#060807"
+      "backgroundColor": "#262b2a"
     },
     "androidStatusBar": {
       "backgroundColor": "#0F0F0F",

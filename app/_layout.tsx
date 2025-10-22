@@ -21,6 +21,14 @@ export default function RootLayout() {
     <>
       <StatusBar style="light" backgroundColor="#060807" />
       <Slot />
+           <Stack screenOptions={{ headerShown: false }}>
+        {/* Route groups/screens registered here */}
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="view-recipe" options={{ headerShown: false }} />
+        <Stack.Screen name="guided" options={{ headerShown: false }} />
+        <Stack.Screen name="modal" options={{ presentation: "modal", headerShown: false }} />
+        <Stack.Screen name="+not-found" />
+      </Stack>
     </>
   );
 }
