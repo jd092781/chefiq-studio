@@ -2,7 +2,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import React from "react";
 
-
 const colors = {
   surface: "#0F0F0F",
   border: "#2A2A2A",
@@ -10,11 +9,10 @@ const colors = {
   muted: "#9CA3AF",
 };
 
-
-
 export default function TabsLayout() {
   return (
     <Tabs
+      initialRouteName="home"
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
@@ -44,7 +42,7 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* 📚 My Recipes (renamed from Drafts) */}
+      {/* 📚 My Recipes */}
       <Tabs.Screen
         name="my-recipes"
         options={{
