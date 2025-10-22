@@ -1,10 +1,6 @@
-// app/index.tsx
-import { router } from "expo-router";
-import { useEffect } from "react";
+import { Redirect } from "expo-router";
 
+// First screen: send users into the tab navigator at Home.
 export default function Index() {
-  useEffect(() => {
-    router.replace("/(tabs)/home");
-  }, []);
-  return null;
+  return <Redirect href="/(tabs)/home" />;
 }
