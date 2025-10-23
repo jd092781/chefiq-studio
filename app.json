@@ -49,7 +49,7 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "YOUR_PROJECT_ID_HERE"
+        "projectId": "https://expo.dev/accounts/jdypko/projects/chefiq-studio"
       }
     }
   }
