@@ -1,9 +1,10 @@
 // app/(tabs)/_layout.tsx
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Tabs } from "expo-router";
 import React from "react";
+import { Platform } from "react-native";
 
-const colors = {
+const COLORS = {
   surface: "#0F0F0F",
   border: "#2A2A2A",
   accent: "#4dd08c",
@@ -15,26 +16,26 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarShowLabel: true,                    // <- force labels
-        tabBarLabelPosition: "below-icon",        // <- keep under icon
         tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.border,
-          height: 64,                             // <- avoid clipping on phones
-          paddingTop: 4,
-          paddingBottom: 8,
+          backgroundColor: COLORS.surface,
+          borderTopColor: COLORS.border,
+          // Give the bar a bit more height so labels never clip
+          height: 62,
+          paddingTop: 6,
+          paddingBottom: Platform.select({ ios: 10, android: 8 }),
         },
-        tabBarActiveTintColor: colors.accent,
-        tabBarInactiveTintColor: colors.muted,
+        tabBarActiveTintColor: COLORS.accent,
+        tabBarInactiveTintColor: COLORS.muted,
         tabBarLabelStyle: { fontSize: 12, fontWeight: "600" },
-        tabBarItemStyle: { paddingBottom: 2 },    // <- give label breathing room
+        // Avoid the tab bar covering inputs on Android
+        tabBarHideOnKeyboard: true,
       }}
     >
+      {/* 🏠 Home */}
       <Tabs.Screen
         name="home"
         options={{
           title: "Home",
-          tabBarLabel: "Home",
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
               name={focused ? "home" : "home-outline"}
@@ -45,11 +46,11 @@ export default function TabsLayout() {
         }}
       />
 
+      {/* 📚 My Recipes */}
       <Tabs.Screen
         name="my-recipes"
         options={{
           title: "My Recipes",
-          tabBarLabel: "My Recipes",
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
               name={focused ? "book" : "book-outline"}
@@ -60,11 +61,11 @@ export default function TabsLayout() {
         }}
       />
 
+      {/* ✏️ Create */}
       <Tabs.Screen
         name="create"
         options={{
           title: "Create",
-          tabBarLabel: "Create",
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
               name={focused ? "create" : "create-outline"}
