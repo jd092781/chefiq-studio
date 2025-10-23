@@ -1,4 +1,4 @@
-﻿{
+{
   "cli": { "version": ">= 6.24.0" },
   "build": {
     "preview-android-apk": {
