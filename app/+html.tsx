@@ -1,9 +1,4 @@
 // app/+html.tsx
-import React from "react";
-// NOTE: We intentionally DO NOT import ScrollViewStyleReset here.
-// That util disables <body> scrolling, which was preventing pages from
-// scrolling on the web build.
-
 export default function Root({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
@@ -15,38 +10,24 @@ export default function Root({ children }: { children: React.ReactNode }) {
           content="width=device-width, initial-scale=1, shrink-to-fit=no"
         />
 
-        {/* Keep the background from flashing between routes */}
+        {/* Force the document to be scrollable and touch-scroll friendly */}
         <style
-          dangerouslySetInnerHTML={{
-            __html: `
-              html, body, #root, #__next {
-                height: auto;
-                min-height: 100vh;
-              }
-              /* RE-ENABLE body scrolling on web */
-              body {
-                overflow-y: auto !important;
-                background-color: #000;
-              }
-              @media (prefers-color-scheme: light) {
-                body { background-color: #fff; }
-              }
-            `,
-          }}
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{ __html: globalCSS }}
         />
       </head>
-
       <body>
         {children}
 
-        {/* Make sure no rogue service worker caches old bundles */}
+        {/* Nuke any stale service worker that could serve old CSS/JS */}
         <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations?.()
-                  .then(rs => rs.forEach(r => r.unregister()))
-                  .catch(()=>{});
+          // eslint-disable-next-line react/no-danger
+           dangerouslySetInnerHTML={{
+    __html: `
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations?.()
+          .then(rs => rs.forEach(r => r.unregister()))
+          .catch(()=>{});
               }
             `,
           }}
@@ -55,3 +36,19 @@ export default function Root({ children }: { children: React.ReactNode }) {
     </html>
   );
 }
+
+const globalCSS = `
+  html, body, #root { min-height: 100%; }
+  body {
+    margin: 0;
+    background: #000;
+    color-scheme: dark;
+    /* ✅ absolutely ensure the page can scroll */
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+  }
+  @media (prefers-color-scheme: light) {
+    body { background: #fff; }
+  }
+`;
