@@ -1,6 +1,8 @@
 // app/+html.tsx
-// Web-only root HTML used during static rendering.
-// IMPORTANT: Do NOT import ScrollViewStyleReset from 'expo-router/html' here.
+import React from "react";
+// NOTE: We intentionally DO NOT import ScrollViewStyleReset here.
+// That util disables <body> scrolling, which was preventing pages from
+// scrolling on the web build.
 
 export default function Root({ children }: { children: React.ReactNode }) {
   return (
@@ -10,27 +12,24 @@ export default function Root({ children }: { children: React.ReactNode }) {
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta
           name="viewport"
-          content="width=device-width, initial-scale=1, viewport-fit=cover"
+          content="width=device-width, initial-scale=1, shrink-to-fit=no"
         />
 
+        {/* Keep the background from flashing between routes */}
         <style
           dangerouslySetInnerHTML={{
             __html: `
-              /* Make the page actually scroll on iOS/Android browsers */
-              html, body, #root, #__next { height: 100%; }
-              body {
-                margin: 0;
-                background: #000;                 /* dark background */
-                color-scheme: dark;
-                overflow-y: auto !important;      /* ✅ allow vertical scrolling */
-                -webkit-overflow-scrolling: touch;/* ✅ smooth iOS scroll */
+              html, body, #root, #__next {
+                height: auto;
+                min-height: 100vh;
               }
-
-              /* Extra safety: never hide scroll via overflow on html element */
-              html { overflow-y: auto !important; }
-
+              /* RE-ENABLE body scrolling on web */
+              body {
+                overflow-y: auto !important;
+                background-color: #000;
+              }
               @media (prefers-color-scheme: light) {
-                body { background: #fff; }
+                body { background-color: #fff; }
               }
             `,
           }}
@@ -40,7 +39,7 @@ export default function Root({ children }: { children: React.ReactNode }) {
       <body>
         {children}
 
-        {/* Kill any stale service workers that could freeze assets / CSS */}
+        {/* Make sure no rogue service worker caches old bundles */}
         <script
           dangerouslySetInnerHTML={{
             __html: `

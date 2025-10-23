@@ -350,3 +350,14 @@ const styles = StyleSheet.create({
   },
   buttonText: { color: "#0A0A0A", fontWeight: "700", fontSize: 16 },
 });
+
+<SafeAreaView style={{ flex: 1 }} edges={["top"]}>
+  <ScrollView
+    style={{ flex: 1 }}
+    contentContainerStyle={{ paddingBottom: 28 }}
+    showsVerticalScrollIndicator
+    keyboardShouldPersistTaps="handled"
+  >
+    {/* ... */}
+  </ScrollView>
+</SafeAreaView>

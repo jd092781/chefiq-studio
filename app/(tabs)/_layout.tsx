@@ -15,31 +15,26 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarShowLabel: true,                 // ✅ force labels
-        tabBarLabelPosition: "below-icon",
-        tabBarActiveTintColor: colors.accent,
-        tabBarInactiveTintColor: colors.muted,
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: "700",
-          marginTop: 2,
-        },
+        tabBarShowLabel: true,                    // <- force labels
+        tabBarLabelPosition: "below-icon",        // <- keep under icon
         tabBarStyle: {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
-          height: 66,                          // ✅ enough height for icon + label
-          paddingTop: 6,
-          paddingBottom: 10,                   // ✅ avoid clipping on mobile web
+          height: 64,                             // <- avoid clipping on phones
+          paddingTop: 4,
+          paddingBottom: 8,
         },
-        tabBarItemStyle: { paddingBottom: 2 },
-        tabBarHideOnKeyboard: false,
-        sceneStyle: { backgroundColor: colors.surface },
+        tabBarActiveTintColor: colors.accent,
+        tabBarInactiveTintColor: colors.muted,
+        tabBarLabelStyle: { fontSize: 12, fontWeight: "600" },
+        tabBarItemStyle: { paddingBottom: 2 },    // <- give label breathing room
       }}
     >
       <Tabs.Screen
         name="home"
         options={{
           title: "Home",
+          tabBarLabel: "Home",
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
               name={focused ? "home" : "home-outline"}
@@ -49,10 +44,12 @@ export default function TabsLayout() {
           ),
         }}
       />
+
       <Tabs.Screen
         name="my-recipes"
         options={{
           title: "My Recipes",
+          tabBarLabel: "My Recipes",
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
               name={focused ? "book" : "book-outline"}
@@ -62,10 +59,12 @@ export default function TabsLayout() {
           ),
         }}
       />
+
       <Tabs.Screen
         name="create"
         options={{
           title: "Create",
+          tabBarLabel: "Create",
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
               name={focused ? "create" : "create-outline"}
