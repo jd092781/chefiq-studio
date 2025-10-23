@@ -1,9 +1,8 @@
-// app/(tabs)/home.tsx
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "expo-router";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Dimensions,
   Pressable,
@@ -33,20 +32,6 @@ import {
 
 const CARD_WIDTH = Dimensions.get("window").width - 32;
 
-// ---------- types / keys ----------
-type InProgress = {
-  id: string;
-  stepIndex?: number;
-  appliance?: string; // "minioven" | "cooker"
-  mode?: string; // e.g., "air_fry"
-  updatedAt: number;
-};
-
-const KEY_FAVS = "chefiq_favorites";
-const KEY_HIST = "chefiq_history";
-const KEY_INPROGRESS = "chefiq_inprogress";
-
-/** Icon colors (icons only; circle stays neutral) */
 const PRESET_COLORS: Record<string, string> = {
   poultry: "#FF914D",
   pork: "#FF9BAA",
@@ -62,7 +47,6 @@ const PRESET_COLORS: Record<string, string> = {
   meat: "#FF7A7A",
 };
 
-/** Fallback time/difficulty if a recipe lacks meta */
 function getMeta(recipe: RecipeFull | undefined) {
   const preset = (recipe as any)?.preset as string | undefined;
   const defaultsByPreset: Record<string, { active: number; total: number; diff: string }> = {
@@ -99,31 +83,25 @@ function TimePill({ minutes }: { minutes: number }) {
 }
 
 export default function Home() {
+  const [name] = useState("Chef");
   const [favorites, setFavorites] = useState<string[]>([]);
   const [history, setHistory] = useState<string[]>([]);
-  const [inProgress, setInProgress] = useState<InProgress | null>(null);
 
-  // load persisted data
   useEffect(() => {
     (async () => {
-      const favRaw = await AsyncStorage.getItem(KEY_FAVS);
+      const favRaw = await AsyncStorage.getItem("chefiq_favorites");
       setFavorites(favRaw ? (JSON.parse(favRaw) as string[]) : []);
 
-      const histRaw = await AsyncStorage.getItem(KEY_HIST);
+      const histRaw = await AsyncStorage.getItem("chefiq_history");
       setHistory(histRaw ? (JSON.parse(histRaw) as string[]) : []);
-
-      const ipRaw = await AsyncStorage.getItem(KEY_INPROGRESS);
-      setInProgress(ipRaw ? (JSON.parse(ipRaw) as InProgress) : null);
     })();
   }, []);
 
-  const clearInProgress = useCallback(async () => {
-    await AsyncStorage.removeItem(KEY_INPROGRESS);
-    setInProgress(null);
-  }, []);
-
   const featured: RecipeFull[] = useMemo(
-    () => [RECIPE_LIBRARY["1"], RECIPE_LIBRARY["2"], RECIPE_LIBRARY["3"], RECIPE_LIBRARY["4"]],
+    () =>
+      [RECIPE_LIBRARY["4"], RECIPE_LIBRARY["2"], RECIPE_LIBRARY["3"], RECIPE_LIBRARY["1"]].filter(
+        Boolean
+      ) as RecipeFull[],
     []
   );
 
@@ -137,11 +115,12 @@ export default function Home() {
     [history]
   );
 
-  const inProgRecipe = inProgress ? (RECIPE_LIBRARY[inProgress.id] as RecipeFull | undefined) : undefined;
-
   return (
     <SafeAreaView style={styles.screen} edges={["top"]}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 36 }}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Header */}
         <View style={styles.headerRow}>
           <FallbackImage
@@ -149,13 +128,13 @@ export default function Home() {
             style={{ width: 150, height: 28 }}
             resizeMode="contain"
           />
-          <Pressable onPress={() => router.push("/modal")}>
+          <Pressable hitSlop={10}>
             <Ionicons name="notifications-outline" size={22} color={ACCENT} />
           </Pressable>
         </View>
 
         {/* Greeting */}
-        <Text style={styles.hi}>Hi, Chef</Text>
+        <Text style={styles.hi}>Hi, {name}</Text>
 
         {/* Search */}
         <View style={styles.searchBox}>
@@ -167,63 +146,14 @@ export default function Home() {
           />
         </View>
 
-        {/* ---- Continue Saved Recipe ---- */}
-        {inProgRecipe && (
-          <View style={{ paddingHorizontal: 16, marginTop: 16 }}>
-            <Pressable
-              onPress={() =>
-                router.push({
-                  pathname: "/guided",
-                  params: {
-                    id: inProgRecipe.id,
-                    step: String(inProgress?.stepIndex ?? 0),
-                    appliance: inProgress?.appliance ?? "",
-                    mode: inProgress?.mode ?? "",
-                  },
-                })
-              }
-              style={[styles.card, { overflow: "hidden" }]}
-            >
-              <View style={{ position: "relative" }}>
-                <FallbackImage
-                  source={LOCAL_IMAGES[inProgRecipe.id] ?? { uri: inProgRecipe.coverUri }}
-                  fallback={require("../../assets/placeholder-recipe.jpg")}
-                  style={{ width: "100%", height: 140 }}
-                />
-                <View style={styles.continueBadge}>
-                  <Ionicons name="play-circle" size={16} color="#fff" />
-                  <Text style={styles.continueText}>Continue Saved Recipe</Text>
-                </View>
-                {!!inProgress?.stepIndex && (
-                  <View style={[styles.pill, { position: "absolute", right: 10, bottom: 10 }]}>
-                    <Ionicons name="list-outline" size={14} color="#EDEDED" />
-                    <Text style={styles.pillText}>Step {inProgress.stepIndex + 1}</Text>
-                  </View>
-                )}
-              </View>
-              <View style={{ padding: 12, gap: 2 }}>
-                <Text style={styles.cardTitle} numberOfLines={1}>
-                  {inProgRecipe.title}
-                </Text>
-                <Text style={styles.cardDesc} numberOfLines={2}>
-                  {inProgRecipe.description}
-                </Text>
-                <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
-                  <Pressable onPress={clearInProgress} style={styles.clearBtn}>
-                    <Text style={{ color: "#ddd", fontWeight: "600" }}>Clear</Text>
-                  </Pressable>
-                </View>
-              </View>
-            </Pressable>
-          </View>
-        )}
-
         {/* Presets */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Presets</Text>
-          <Pressable onPress={() => router.push("/presets/all")}>
-            <Text style={styles.link}>View All</Text>
-          </Pressable>
+          <Link href="/presets/all" asChild prefetch>
+            <Pressable>
+              <Text style={styles.link}>View All</Text>
+            </Pressable>
+          </Link>
         </View>
 
         <ScrollView
@@ -234,20 +164,27 @@ export default function Home() {
           {PRESETS.filter((p) => !["all", "favorites", "history"].includes(p.slug)).map((item) => {
             const color = PRESET_COLORS[item.slug] ?? ACCENT;
             return (
-              <Pressable
+              <Link
                 key={item.slug}
-                onPress={() => router.push(`/presets/${item.slug}`)}
-                style={styles.presetCircle}
+                href={{ pathname: `/presets/${item.slug}` }}
+                asChild
+                prefetch
               >
-                <View style={styles.iconCircle}>
-                  {item.iconLib === "mci" ? (
-                    <MaterialCommunityIcons name={item.icon as any} size={24} color={color} />
-                  ) : (
-                    <Ionicons name={item.icon as any} size={24} color={color} />
-                  )}
-                </View>
-                <Text style={styles.presetLabel}>{item.label}</Text>
-              </Pressable>
+                <Pressable style={styles.presetCircle}>
+                  <View style={styles.iconCircle}>
+                    {item.iconLib === "mci" ? (
+                      <MaterialCommunityIcons
+                        name={item.icon as any}
+                        size={24}
+                        color={color}
+                      />
+                    ) : (
+                      <Ionicons name={item.icon as any} size={24} color={color} />
+                    )}
+                  </View>
+                  <Text style={styles.presetLabel}>{item.label}</Text>
+                </Pressable>
+              </Link>
             );
           })}
         </ScrollView>
@@ -266,35 +203,40 @@ export default function Home() {
             {favoriteRecipes.slice(0, 10).map((item) => {
               const meta = getMeta(item);
               return (
-                <Pressable
+                <Link
                   key={item.id}
-                  onPress={() => router.push({ pathname: "/view-recipe", params: { id: item.id } })}
-                  style={[styles.card, { width: CARD_WIDTH * 0.8 }]}
+                  href={{ pathname: "/view-recipe", params: { id: item.id } }}
+                  asChild
+                  prefetch
                 >
-                  <View style={{ position: "relative" }}>
-                    <FallbackImage
-                      source={LOCAL_IMAGES[item.id] ?? { uri: item.coverUri }}
-                      fallback={require("../../assets/placeholder-recipe.jpg")}
-                      style={{ width: "100%", height: 140 }}
-                    />
-                    <View style={styles.pillWrap}>
-                      <TimePill minutes={meta.total} />
+                  <Pressable style={[styles.card, { width: CARD_WIDTH * 0.8 }]}>
+                    <View style={{ position: "relative" }}>
+                      <FallbackImage
+                        source={LOCAL_IMAGES[item.id] ?? { uri: item.coverUri }}
+                        fallback={require("../../assets/placeholder-recipe.jpg")}
+                        style={{ width: "100%", height: 140 }}
+                      />
+                      <View style={styles.pillWrap}>
+                        <TimePill minutes={meta.total} />
+                      </View>
                     </View>
-                  </View>
-                  <View style={{ padding: 12 }}>
-                    <Text style={styles.cardTitle} numberOfLines={1}>
-                      {item.title}
-                    </Text>
-                    <Text style={styles.cardDesc} numberOfLines={2}>
-                      {item.description}
-                    </Text>
-                  </View>
-                </Pressable>
+                    <View style={{ padding: 12 }}>
+                      <Text style={styles.cardTitle} numberOfLines={1}>
+                        {item.title}
+                      </Text>
+                      <Text style={styles.cardDesc} numberOfLines={2}>
+                        {item.description}
+                      </Text>
+                    </View>
+                  </Pressable>
+                </Link>
               );
             })}
           </ScrollView>
         ) : (
-          <Text style={styles.emptyHint}>No favorites yet. Tap the heart on a recipe to save it.</Text>
+          <Text style={styles.emptyHint}>
+            No favorites yet. Tap the heart on a recipe to save it.
+          </Text>
         )}
 
         {/* History */}
@@ -311,30 +253,33 @@ export default function Home() {
             {historyRecipes.slice(0, 10).map((item) => {
               const meta = getMeta(item);
               return (
-                <Pressable
+                <Link
                   key={item.id}
-                  onPress={() => router.push({ pathname: "/view-recipe", params: { id: item.id } })}
-                  style={[styles.card, { width: CARD_WIDTH * 0.8 }]}
+                  href={{ pathname: "/view-recipe", params: { id: item.id } }}
+                  asChild
+                  prefetch
                 >
-                  <View style={{ position: "relative" }}>
-                    <FallbackImage
-                      source={LOCAL_IMAGES[item.id] ?? { uri: item.coverUri }}
-                      fallback={require("../../assets/placeholder-recipe.jpg")}
-                      style={{ width: "100%", height: 140 }}
-                    />
-                    <View style={styles.pillWrap}>
-                      <TimePill minutes={meta.total} />
+                  <Pressable style={[styles.card, { width: CARD_WIDTH * 0.8 }]}>
+                    <View style={{ position: "relative" }}>
+                      <FallbackImage
+                        source={LOCAL_IMAGES[item.id] ?? { uri: item.coverUri }}
+                        fallback={require("../../assets/placeholder-recipe.jpg")}
+                        style={{ width: "100%", height: 140 }}
+                      />
+                      <View style={styles.pillWrap}>
+                        <TimePill minutes={meta.total} />
+                      </View>
                     </View>
-                  </View>
-                  <View style={{ padding: 12 }}>
-                    <Text style={styles.cardTitle} numberOfLines={1}>
-                      {item.title}
-                    </Text>
-                    <Text style={styles.cardDesc} numberOfLines={2}>
-                      {item.description}
-                    </Text>
-                  </View>
-                </Pressable>
+                    <View style={{ padding: 12 }}>
+                      <Text style={styles.cardTitle} numberOfLines={1}>
+                        {item.title}
+                      </Text>
+                      <Text style={styles.cardDesc} numberOfLines={2}>
+                        {item.description}
+                      </Text>
+                    </View>
+                  </Pressable>
+                </Link>
               );
             })}
           </ScrollView>
@@ -343,34 +288,41 @@ export default function Home() {
         )}
 
         {/* Featured */}
-        <Text style={[styles.sectionTitle, { paddingHorizontal: 16, marginTop: 18 }]}>Featured</Text>
+        <Text
+          style={[styles.sectionTitle, { paddingHorizontal: 16, marginTop: 18 }]}
+        >
+          Featured
+        </Text>
 
         <View style={{ paddingHorizontal: 16, marginTop: 8, gap: 12 }}>
           {featured.map((item) => {
             const meta = getMeta(item);
             return (
-              <Pressable
+              <Link
                 key={item.id}
-                onPress={() => router.push({ pathname: "/view-recipe", params: { id: item.id } })}
-                style={styles.card}
+                href={{ pathname: "/view-recipe", params: { id: item.id } }}
+                asChild
+                prefetch
               >
-                <View style={{ position: "relative" }}>
-                  <FallbackImage
-                    source={LOCAL_IMAGES[item.id] ?? { uri: item.coverUri }}
-                    fallback={require("../../assets/placeholder-recipe.jpg")}
-                    style={{ width: "100%", height: 200 }}
-                  />
-                  <View style={styles.pillWrap}>
-                    <TimePill minutes={meta.total} />
+                <Pressable style={styles.card}>
+                  <View style={{ position: "relative" }}>
+                    <FallbackImage
+                      source={LOCAL_IMAGES[item.id] ?? { uri: item.coverUri }}
+                      fallback={require("../../assets/placeholder-recipe.jpg")}
+                      style={{ width: "100%", height: 200 }}
+                    />
+                    <View style={styles.pillWrap}>
+                      <TimePill minutes={meta.total} />
+                    </View>
                   </View>
-                </View>
-                <View style={{ padding: 12 }}>
-                  <Text style={styles.cardTitle}>{item.title}</Text>
-                  <Text numberOfLines={2} style={styles.cardDesc}>
-                    {item.description}
-                  </Text>
-                </View>
-              </Pressable>
+                  <View style={{ padding: 12 }}>
+                    <Text style={styles.cardTitle}>{item.title}</Text>
+                    <Text numberOfLines={2} style={styles.cardDesc}>
+                      {item.description}
+                    </Text>
+                  </View>
+                </Pressable>
+              </Link>
             );
           })}
         </View>
@@ -449,28 +401,4 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.15)",
   },
   pillText: { color: "#EDEDED", fontWeight: "600" },
-
-  continueBadge: {
-    position: "absolute",
-    left: 10,
-    bottom: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "rgba(0,0,0,0.55)",
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.15)",
-  },
-  continueText: { color: "#fff", fontWeight: "700" },
-  clearBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: "#1f1f1f",
-    borderWidth: 1,
-    borderColor: BORDER,
-  },
 });
