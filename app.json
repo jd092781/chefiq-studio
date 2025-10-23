@@ -4,11 +4,11 @@
     "slug": "chefiq-starter",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/studioiq-applogo.png",
     "scheme": "chefiq",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/studioiq-splashscreen.png",
       "resizeMode": "contain",
       "backgroundColor": "#4dd08c"
     },
