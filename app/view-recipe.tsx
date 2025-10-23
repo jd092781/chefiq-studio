@@ -160,12 +160,18 @@ export default function ViewRecipe() {
   };
 
   return (
-    <SafeAreaView style={styles.screen} edges={["top"]}>
+    // ✅ include bottom edge so content can scroll past the tab bar safely
+    <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ flexGrow: 1, paddingBottom: 28 }}
+        // ✅ remove flexGrow and give generous bottom padding to ensure scroll
+        contentContainerStyle={{ paddingBottom: 140 }}
         showsVerticalScrollIndicator={true}
         keyboardShouldPersistTaps="handled"
+        // ✅ make scrolling/bounce reliable across iOS/Android
+        bounces
+        alwaysBounceVertical
+        overScrollMode="always"
       >
         {/* Cover with heart */}
         <View>

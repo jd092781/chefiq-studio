@@ -160,7 +160,7 @@ export default function Home() {
         </View>
 
         {/* Greeting */}
-        <Text style={styles.hi}>Hi, {name}</Text>
+        <Text style={styles.hi}>Hi, Chef</Text>
 
         {/* Search */}
         <View style={styles.searchBox}>
