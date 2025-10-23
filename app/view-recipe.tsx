@@ -28,10 +28,12 @@ import {
   TEXT,
 } from "../lib/recipes";
 
-/** meta fallback same logic as other screens */
 function getMeta(recipe: RecipeFull | undefined) {
   const preset = (recipe as any)?.preset as string | undefined;
-  const defaultsByPreset: Record<string, { active: number; total: number; diff: string }> = {
+  const defaultsByPreset: Record<
+    string,
+    { active: number; total: number; diff: string }
+  > = {
     poultry: { active: 35, total: 45, diff: "Easy" },
     meat: { active: 40, total: 55, diff: "Medium" },
     seafood: { active: 15, total: 25, diff: "Easy" },
@@ -45,7 +47,11 @@ function getMeta(recipe: RecipeFull | undefined) {
     fruit: { active: 10, total: 15, diff: "Easy" },
     beef: { active: 25, total: 60, diff: "Medium" },
   };
-  const d = defaultsByPreset[preset ?? "vegetarian"] ?? { active: 20, total: 30, diff: "Easy" };
+  const d = defaultsByPreset[preset ?? "vegetarian"] ?? {
+    active: 20,
+    total: 30,
+    diff: "Easy",
+  };
   const meta = (recipe as any)?.meta ?? {};
   return {
     difficulty: meta.difficulty ?? d.diff,
@@ -55,7 +61,6 @@ function getMeta(recipe: RecipeFull | undefined) {
   };
 }
 
-// Look up by id across library & presets
 const findRecipeById = (id?: string): RecipeFull | undefined => {
   if (!id) return undefined;
   if (RECIPE_LIBRARY[id]) return RECIPE_LIBRARY[id];
@@ -71,17 +76,16 @@ export default function ViewRecipe() {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [isFav, setIsFav] = useState<boolean>(false);
 
-  // Build recipe either from id, or from encoded JSON passed in the route
   const recipe: RecipeFull | undefined = useMemo(() => {
     if (params.recipe) {
       try {
-        // ✅ recipes coming from Create/Publish are URL-encoded—decode then parse
         const decoded = decodeURIComponent(String(params.recipe));
         const raw = JSON.parse(decoded);
 
-        // Normalize possible {text: "..."} arrays to string[]
         const normArray = (arr: any[] | undefined) =>
-          (arr ?? []).map((x: any) => (typeof x === "string" ? x : x?.text ?? "")).filter(Boolean);
+          (arr ?? [])
+            .map((x: any) => (typeof x === "string" ? x : x?.text ?? ""))
+            .filter(Boolean);
 
         const r: RecipeFull = {
           id: raw.id ?? String(Date.now()),
@@ -96,7 +100,7 @@ export default function ViewRecipe() {
         };
         return r;
       } catch {
-        // If anything goes wrong, fall back to id path
+        // fallback
       }
     }
     return findRecipeById(params.id);
@@ -104,7 +108,6 @@ export default function ViewRecipe() {
 
   const meta = getMeta(recipe);
 
-  // Load favorites + add to history on open
   useEffect(() => {
     (async () => {
       const favRaw = await AsyncStorage.getItem("chefiq_favorites");
@@ -115,7 +118,10 @@ export default function ViewRecipe() {
       if (recipe?.id) {
         const histRaw = await AsyncStorage.getItem("chefiq_history");
         const cur = histRaw ? (JSON.parse(histRaw) as string[]) : [];
-        const next = [recipe.id, ...cur.filter((x) => x !== recipe.id)].slice(0, 30);
+        const next = [recipe.id, ...cur.filter((x) => x !== recipe.id)].slice(
+          0,
+          30
+        );
         await AsyncStorage.setItem("chefiq_history", JSON.stringify(next));
       }
     })();
@@ -123,9 +129,16 @@ export default function ViewRecipe() {
 
   if (!recipe) {
     return (
-      <SafeAreaView style={[styles.screen, { alignItems: "center", justifyContent: "center" }]}>
-        <Text style={{ color: TEXT, fontSize: 18, marginBottom: 8 }}>Recipe not found</Text>
-        <Pressable onPress={() => router.back()} style={[styles.button, { paddingHorizontal: 18, paddingVertical: 10 }]}>
+      <SafeAreaView
+        style={[styles.screen, { alignItems: "center", justifyContent: "center" }]}
+      >
+        <Text style={{ color: TEXT, fontSize: 18, marginBottom: 8 }}>
+          Recipe not found
+        </Text>
+        <Pressable
+          onPress={() => router.back()}
+          style={[styles.button, { paddingHorizontal: 18, paddingVertical: 10 }]}
+        >
           <Text style={styles.buttonText}>Go Back</Text>
         </Pressable>
       </SafeAreaView>
@@ -148,7 +161,12 @@ export default function ViewRecipe() {
 
   return (
     <SafeAreaView style={styles.screen} edges={["top"]}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 28 }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: 28 }}
+        showsVerticalScrollIndicator={true}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Cover with heart */}
         <View>
           <FallbackImage
@@ -158,17 +176,23 @@ export default function ViewRecipe() {
             resizeMode="cover"
           />
           <Pressable style={styles.heart} onPress={toggleFavorite}>
-            <Ionicons name={isFav ? "heart" : "heart-outline"} size={22} color={isFav ? ACCENT : "#fff"} />
+            <Ionicons
+              name={isFav ? "heart" : "heart-outline"}
+              size={22}
+              color={isFav ? ACCENT : "#fff"}
+            />
           </Pressable>
         </View>
 
         {/* Title */}
         <View style={{ paddingHorizontal: 16, paddingTop: 14 }}>
           <Text style={styles.title}>{recipe.title}</Text>
-          {!!recipe.description && <Text style={styles.description}>{recipe.description}</Text>}
+          {!!recipe.description && (
+            <Text style={styles.description}>{recipe.description}</Text>
+          )}
         </View>
 
-        {/* 4-spec grid */}
+        {/* Meta grid */}
         <View style={styles.specRow}>
           <View style={styles.specCard}>
             <Text style={styles.specLabel}>DIFFICULTY</Text>
@@ -188,16 +212,20 @@ export default function ViewRecipe() {
           </View>
         </View>
 
-        {/* Availability banners */}
+        {/* Availability */}
         <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
           {!miniOvenOK && (
             <View style={styles.banner}>
-              <Text style={styles.bannerText}>Not available for iQ Mini Oven</Text>
+              <Text style={styles.bannerText}>
+                Not available for iQ Mini Oven
+              </Text>
             </View>
           )}
           {!cookerOK && (
             <View style={styles.banner}>
-              <Text style={styles.bannerText}>Not available for iQ Cooker</Text>
+              <Text style={styles.bannerText}>
+                Not available for iQ Cooker
+              </Text>
             </View>
           )}
         </View>
@@ -206,15 +234,19 @@ export default function ViewRecipe() {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Ingredients</Text>
           {(recipe.ingredients ?? []).map((it, idx) => (
-            <Text key={idx} style={styles.li}>• {it}</Text>
+            <Text key={idx} style={styles.li}>
+              • {it}
+            </Text>
           ))}
         </View>
 
-        {/* Steps (overview) */}
+        {/* Steps */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Steps (overview)</Text>
           {(recipe.steps ?? []).map((s, i) => (
-            <Text key={i} style={styles.li}>{i + 1}. {s}</Text>
+            <Text key={i} style={styles.li}>
+              {i + 1}. {s}
+            </Text>
           ))}
         </View>
 
@@ -223,7 +255,10 @@ export default function ViewRecipe() {
           <Pressable
             onPress={() => {
               if (!miniOvenOK && !cookerOK) {
-                Alert.alert("Heads up", "This recipe doesn't list supported appliances yet.");
+                Alert.alert(
+                  "Heads up",
+                  "This recipe doesn't list supported appliances yet."
+                );
               }
               router.push({ pathname: "/guided", params: { id: recipe.id } });
             }}
@@ -253,7 +288,6 @@ const styles = StyleSheet.create({
   title: { color: TEXT, fontSize: 24, fontWeight: "700", marginBottom: 6 },
   description: { color: MUTED, fontSize: 14 },
 
-  /* 4-spec grid */
   specRow: {
     flexDirection: "row",
     gap: 10,
@@ -270,7 +304,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     width: "48%",
   },
-  specLabel: { color: MUTED, fontWeight: "700", letterSpacing: 1, fontSize: 12, marginBottom: 6 },
+  specLabel: {
+    color: MUTED,
+    fontWeight: "700",
+    letterSpacing: 1,
+    fontSize: 12,
+    marginBottom: 6,
+  },
   specValue: { color: TEXT, fontWeight: "700", fontSize: 18 },
 
   banner: {
