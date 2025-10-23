@@ -1,5 +1,6 @@
 // app/+html.tsx
 // Web-only root HTML used during static rendering.
+// IMPORTANT: Do NOT import ScrollViewStyleReset from 'expo-router/html' here.
 
 export default function Root({ children }: { children: React.ReactNode }) {
   return (
@@ -13,17 +14,21 @@ export default function Root({ children }: { children: React.ReactNode }) {
         />
 
         <style
-          // Minimal CSS: keep dark bg and (most important) allow page scroll on mobile web
           dangerouslySetInnerHTML={{
             __html: `
-              html, body, #root { height: 100%; }
+              /* Make the page actually scroll on iOS/Android browsers */
+              html, body, #root, #__next { height: 100%; }
               body {
                 margin: 0;
-                background: #000;         /* dark background */
+                background: #000;                 /* dark background */
                 color-scheme: dark;
-                overflow-y: auto;          /* ✅ allow vertical scrolling */
-                -webkit-overflow-scrolling: touch; /* ✅ smooth iOS scroll */
+                overflow-y: auto !important;      /* ✅ allow vertical scrolling */
+                -webkit-overflow-scrolling: touch;/* ✅ smooth iOS scroll */
               }
+
+              /* Extra safety: never hide scroll via overflow on html element */
+              html { overflow-y: auto !important; }
+
               @media (prefers-color-scheme: light) {
                 body { background: #fff; }
               }
@@ -35,7 +40,7 @@ export default function Root({ children }: { children: React.ReactNode }) {
       <body>
         {children}
 
-        {/* Make sure a stale SW never interferes */}
+        {/* Kill any stale service workers that could freeze assets / CSS */}
         <script
           dangerouslySetInnerHTML={{
             __html: `

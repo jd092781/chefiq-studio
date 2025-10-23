@@ -42,7 +42,6 @@ type InProgress = {
   updatedAt: number;
 };
 
-const KEY_NAME = "chefiq_user_name";
 const KEY_FAVS = "chefiq_favorites";
 const KEY_HIST = "chefiq_history";
 const KEY_INPROGRESS = "chefiq_inprogress";
@@ -107,9 +106,6 @@ export default function Home() {
   // load persisted data
   useEffect(() => {
     (async () => {
-      const n = await AsyncStorage.getItem(KEY_NAME);
-      if (n) setName(n);
-
       const favRaw = await AsyncStorage.getItem(KEY_FAVS);
       setFavorites(favRaw ? (JSON.parse(favRaw) as string[]) : []);
 

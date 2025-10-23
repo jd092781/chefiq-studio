@@ -15,25 +15,25 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarShowLabel: true,                 // ✅ always show labels
+        tabBarShowLabel: true,                 // ✅ force labels
         tabBarLabelPosition: "below-icon",
         tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.muted,
         tabBarLabelStyle: {
           fontSize: 12,
-          fontWeight: "600",
-          marginTop: 2,                        // a touch of breathing room
+          fontWeight: "700",
+          marginTop: 2,
         },
         tabBarStyle: {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
-          height: 64,                          // ✅ give room so text isn’t cut
+          height: 66,                          // ✅ enough height for icon + label
           paddingTop: 6,
-          paddingBottom: 8,
+          paddingBottom: 10,                   // ✅ avoid clipping on mobile web
         },
-        tabBarItemStyle: { paddingBottom: 2 }, // keep icon+label centered
+        tabBarItemStyle: { paddingBottom: 2 },
         tabBarHideOnKeyboard: false,
-        sceneStyle: { backgroundColor: colors.surface }, // web parity
+        sceneStyle: { backgroundColor: colors.surface },
       }}
     >
       <Tabs.Screen
