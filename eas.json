@@ -1,23 +1,30 @@
 {
-  "cli": {
-    "version": ">= 12.6.0"
-  },
+  "cli": { "version": ">= 12.6.0" },
+
   "build": {
-    "development": {
-      "developmentClient": true,
+    "preview-android-apk": {
       "distribution": "internal",
-      "android": { "buildType": "apk" },
-      "env": { "EXPO_PUBLIC_ROUTER_ORIGIN": "expo" }
+      "android": { "buildType": "apk" }
     },
+
     "preview": {
       "distribution": "internal",
       "android": { "buildType": "apk" }
     },
+
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": { "buildType": "apk" }
+    },
+
     "production": {
-      "autoIncrement": "version",
+      "autoIncrement": true,
+      "distribution": "store",
       "android": { "buildType": "app-bundle" }
     }
   },
+
   "submit": {
     "production": {}
   }
