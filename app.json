@@ -1,53 +1,55 @@
 {
   "expo": {
     "name": "ChefIQ Studio",
-    "slug": "chefiq-studio",
+    "slug": "chefiq-starter",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/studioiq-applogo.png",
+    "icon": "./assets/icon.png",
     "scheme": "chefiq",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/studioiq-splashscreen.png",
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#262b2a"
+      "backgroundColor": "#4dd08c"
     },
-    "androidStatusBar": {
-      "backgroundColor": "#0F0F0F",
-      "barStyle": "light-content"
+    "updates": {
+      "fallbackToCacheTimeout": 0
     },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.chefiq.studio",
-      "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
-      }
+      "bundleIdentifier": "com.chefiq.studio"
     },
     "android": {
       "package": "com.chefiq.studio",
-      "permissions": [
-        "android.permission.CAMERA",
-        "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.RECORD_AUDIO"
-      ],
-      "softwareKeyboardLayoutMode": "resize"
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#4dd08c"
+      },
+      "permissions": [],
+      "versionCode": 1
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
     },
     "plugins": [
       [
-        "expo-image-picker",
+        "expo-build-properties",
         {
-          "photosPermission": "Allow $(PRODUCT_NAME) to access your photos to set cover images for recipes."
+          "android": {
+            "kotlinVersion": "2.0.21",
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "minSdkVersion": 24
+          }
         }
-      ],
-      "expo-font"
+      ]
     ],
-    "experiments": {
-      "typedRoutes": true
-    },
     "extra": {
       "eas": {
-        "projectId": "69655273-c48f-46b2-9756-0355f4aab8a5"
+        "projectId": "YOUR_PROJECT_ID_HERE"
       }
     }
   }
