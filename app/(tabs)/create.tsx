@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   FlatList,
@@ -19,7 +19,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // ---- Theme (Chef iQ dark) ----
-const ORANGE = "#4dd08c"; // accent
+const ACCENT = "#4dd08c";
 const SURFACE = "#0F0F0F";
 const CARD = "#171717";
 const TEXT = "#FFFFFF";
@@ -29,6 +29,7 @@ const RADIUS = 16;
 
 type Ingredient = { id: string; text: string };
 type Step = { id: string; text: string };
+
 type RecipeDraft = {
   id: string;
   title: string;
@@ -64,7 +65,7 @@ export default function CreateScreen() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState<boolean>(!!params?.id);
 
-  // ---- Load existing draft by id (if opened from Drafts) ----
+  // ---- Load existing draft by id (if opened from My Recipes) ----
   useEffect(() => {
     (async () => {
       if (!params?.id) return;
@@ -164,7 +165,7 @@ export default function CreateScreen() {
     }
   }, [id, title, description, coverUri, ingredients, steps]);
 
-  // ---- PUBLISH (mock) -> /publish (root) ----
+  // ---- PUBLISH (mock) -> /publish ----
   const onPublish = useCallback(() => {
     const payload: RecipeDraft = {
       id,
@@ -175,13 +176,12 @@ export default function CreateScreen() {
       steps,
       lastUpdated: Date.now(),
     };
-    router.push({
-      pathname: "/publish",
-      params: { recipe: encodeURIComponent(JSON.stringify(payload)) }, // ✅ safe
-    });
+    // URL-encode to be safe on web if ever used
+    const encoded = encodeURIComponent(JSON.stringify(payload));
+    router.push({ pathname: "/publish", params: { recipe: encoded } });
   }, [router, id, title, description, coverUri, ingredients, steps]);
 
-  // ---- PREVIEW (read-only) -> /view-recipe (root) ----
+  // ---- PREVIEW -> /view-recipe ----
   const onPreview = useCallback(() => {
     const payload: RecipeDraft = {
       id,
@@ -192,10 +192,8 @@ export default function CreateScreen() {
       steps,
       lastUpdated: Date.now(),
     };
-    router.push({
-      pathname: "/view-recipe",
-      params: { recipe: encodeURIComponent(JSON.stringify(payload)) }, // ✅ safe
-    });
+    const encoded = encodeURIComponent(JSON.stringify(payload));
+    router.push({ pathname: "/view-recipe", params: { recipe: encoded } });
   }, [router, id, title, description, coverUri, ingredients, steps]);
 
   // ---- UI ----
@@ -207,223 +205,205 @@ export default function CreateScreen() {
     );
   }
 
+  // leave lots of breathing room at the bottom so nothing is hidden by the tab bar
+  const bottomPad = useMemo(() => {
+    // tab bar ~58 + extra space + safe inset
+    return Math.max(36, insets.bottom) + 140;
+  }, [insets.bottom]);
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.select({ ios: "padding", android: undefined })}
       style={{ flex: 1, backgroundColor: SURFACE }}
     >
-      <View style={{ flex: 1 }}>
-        <ScrollView
-          contentContainerStyle={{
-            paddingHorizontal: 16,
-            paddingBottom: 100, // leave room for floating toolbar
-            paddingTop: Math.max(12, insets.top + 6),
+      <ScrollView
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingTop: 12,
+          paddingBottom: bottomPad,
+        }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator
+      >
+        {/* COVER CARD */}
+        <Pressable
+          onPress={pickCoverImage}
+          style={{
+            backgroundColor: CARD,
+            borderRadius: RADIUS,
+            borderWidth: 1,
+            borderColor: BORDER,
+            overflow: "hidden",
+            marginBottom: 16,
           }}
-          keyboardShouldPersistTaps="handled"
         >
-          {/* COVER CARD */}
-          <Pressable
-            onPress={pickCoverImage}
-            style={{
-              backgroundColor: CARD,
-              borderRadius: RADIUS,
-              borderWidth: 1,
-              borderColor: BORDER,
-              overflow: "hidden",
-              marginBottom: 16,
-            }}
-          >
-            {coverUri ? (
-              <Image source={{ uri: coverUri }} style={{ width: "100%", height: 200 }} resizeMode="cover" />
-            ) : (
-              <View style={{ padding: 20, alignItems: "center", justifyContent: "center" }}>
-                <View
-                  style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: 12,
-                    borderWidth: 1,
-                    borderColor: BORDER,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    marginBottom: 8,
-                  }}
-                >
-                  <Text style={{ color: MUTED, fontSize: 24 }}>＋</Text>
-                </View>
-                <Text style={{ color: TEXT, fontSize: 16, fontWeight: "600" }}>Add Cover Photo</Text>
-                <Text style={{ color: MUTED, fontSize: 12, marginTop: 4 }}>Optional hero image</Text>
-              </View>
-            )}
-          </Pressable>
-
-          {/* TITLE */}
-          <Field label="Title">
-            <TextInput
-              value={title}
-              onChangeText={setTitle}
-              placeholder="e.g., Crispy Garlic Wings"
-              placeholderTextColor={MUTED}
-              style={inputStyle}
-            />
-          </Field>
-
-          {/* DESCRIPTION */}
-          <Field label="Description">
-            <TextInput
-              value={description}
-              onChangeText={setDescription}
-              placeholder="Short intro, timing, tips…"
-              placeholderTextColor={MUTED}
-              multiline
-              style={[inputStyle, { minHeight: 90 }]}
-            />
-          </Field>
-
-          {/* INGREDIENTS */}
-          <SectionHeader title="Ingredients" right={<SmallButton label="Add" onPress={addIngredient} />} />
-          {ingredients.length === 0 ? (
-            <EmptyRow text="No ingredients yet" />
+          {coverUri ? (
+            <Image source={{ uri: coverUri }} style={{ width: "100%", height: 200 }} resizeMode="cover" />
           ) : (
-            <FlatList
-              data={ingredients}
-              keyExtractor={(i) => i.id}
-              scrollEnabled={false}
-              renderItem={({ item }) => (
-                <RowCard>
+            <View style={{ padding: 20, alignItems: "center", justifyContent: "center" }}>
+              <View
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: BORDER,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: 8,
+                }}
+              >
+                <Text style={{ color: MUTED, fontSize: 24 }}>＋</Text>
+              </View>
+              <Text style={{ color: TEXT, fontSize: 16, fontWeight: "600" }}>Add Cover Photo</Text>
+              <Text style={{ color: MUTED, fontSize: 12, marginTop: 4 }}>Optional hero image</Text>
+            </View>
+          )}
+        </Pressable>
+
+        {/* TITLE */}
+        <Field label="Title">
+          <TextInput
+            value={title}
+            onChangeText={setTitle}
+            placeholder="e.g., Crispy Garlic Wings"
+            placeholderTextColor={MUTED}
+            style={inputStyle}
+          />
+        </Field>
+
+        {/* DESCRIPTION */}
+        <Field label="Description">
+          <TextInput
+            value={description}
+            onChangeText={setDescription}
+            placeholder="Short intro, timing, tips…"
+            placeholderTextColor={MUTED}
+            multiline
+            style={[inputStyle, { minHeight: 90 }]}
+          />
+        </Field>
+
+        {/* INGREDIENTS */}
+        <SectionHeader title="Ingredients" right={<SmallButton label="Add" onPress={addIngredient} />} />
+        {ingredients.length === 0 ? (
+          <EmptyRow text="No ingredients yet" />
+        ) : (
+          <FlatList
+            data={ingredients}
+            keyExtractor={(i) => i.id}
+            scrollEnabled={false}
+            renderItem={({ item }) => (
+              <RowCard>
+                <TextInput
+                  value={item.text}
+                  onChangeText={(t) => updateIngredient(item.id, t)}
+                  placeholder="e.g., 2 tbsp olive oil"
+                  placeholderTextColor={MUTED}
+                  style={rowInputStyle}
+                />
+                <Pressable onPress={() => removeIngredient(item.id)} style={pillDelete}>
+                  <Text style={{ color: "#111", fontWeight: "800" }}>Del</Text>
+                </Pressable>
+              </RowCard>
+            )}
+            ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+          />
+        )}
+        {/* handy bottom add */}
+        <View style={{ alignItems: "flex-start", marginTop: 8 }}>
+          <SmallButton label="Add another ingredient" onPress={addIngredient} />
+        </View>
+
+        {/* STEPS */}
+        <SectionHeader title="Steps" right={<SmallButton label="Add" onPress={addStep} />} />
+        {steps.length === 0 ? (
+          <EmptyRow text="No steps yet" />
+        ) : (
+          <FlatList
+            data={steps}
+            keyExtractor={(s) => s.id}
+            scrollEnabled={false}
+            renderItem={({ item, index }) => (
+              <RowCard>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <Text style={{ color: MUTED, width: 62 }}>Step {index + 1}</Text>
                   <TextInput
                     value={item.text}
-                    onChangeText={(t) => updateIngredient(item.id, t)}
-                    placeholder="e.g., 2 tbsp olive oil"
+                    onChangeText={(t) => updateStep(item.id, t)}
+                    placeholder="Describe the action…"
                     placeholderTextColor={MUTED}
-                    style={rowInputStyle}
+                    style={[rowInputStyle, { flex: 1 }]}
+                    multiline
                   />
-                  <Pressable onPress={() => removeIngredient(item.id)} style={pillDelete}>
-                    <Text style={{ color: "#111", fontWeight: "800" }}>Del</Text>
-                  </Pressable>
-                </RowCard>
-              )}
-              ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
-            />
-          )}
+                </View>
+                <Pressable onPress={() => removeStep(item.id)} style={pillDelete}>
+                  <Text style={{ color: "#111", fontWeight: "800" }}>Del</Text>
+                </Pressable>
+              </RowCard>
+            )}
+            ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+          />
+        )}
+        {/* handy bottom add */}
+        <View style={{ alignItems: "flex-start", marginTop: 8 }}>
+          <SmallButton label="Add another step" onPress={addStep} />
+        </View>
 
-          {/* STEPS */}
-          <SectionHeader title="Steps" right={<SmallButton label="Add" onPress={addStep} />} />
-          {steps.length === 0 ? (
-            <EmptyRow text="No steps yet" />
-          ) : (
-            <FlatList
-              data={steps}
-              keyExtractor={(s) => s.id}
-              scrollEnabled={false}
-              renderItem={({ item, index }) => (
-                <RowCard>
-                  <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <Text style={{ color: MUTED, width: 48 }}>Step {index + 1}</Text>
-                    <TextInput
-                      value={item.text}
-                      onChangeText={(t) => updateStep(item.id, t)}
-                      placeholder="Describe the action…"
-                      placeholderTextColor={MUTED}
-                      style={[rowInputStyle, { flex: 1 }]}
-                      multiline
-                    />
-                  </View>
-                  <Pressable onPress={() => removeStep(item.id)} style={pillDelete}>
-                    <Text style={{ color: "#111", fontWeight: "800" }}>Del</Text>
-                  </Pressable>
-                </RowCard>
-              )}
-              ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
-            />
-          )}
-
-          {/* ACTIONS */}
-          <View style={{ height: 20 }} />
-          <View style={{ flexDirection: "row" }}>
-            <Pressable
-              onPress={saveDraft}
-              disabled={saving}
-              style={{
-                flex: 1,
-                backgroundColor: CARD,
-                borderColor: BORDER,
-                borderWidth: 1,
-                borderRadius: RADIUS,
-                paddingVertical: 14,
-                alignItems: "center",
-                marginRight: 12,
-                opacity: saving ? 0.6 : 1,
-              }}
-            >
-              <Text style={{ color: TEXT, fontWeight: "700" }}>{saving ? "Saving…" : "Save Draft"}</Text>
-            </Pressable>
-
-            <Pressable
-              onPress={onPreview}
-              style={{
-                flex: 1,
-                backgroundColor: CARD,
-                borderColor: BORDER,
-                borderWidth: 1,
-                borderRadius: RADIUS,
-                paddingVertical: 14,
-                alignItems: "center",
-                marginRight: 12,
-              }}
-            >
-              <Text style={{ color: TEXT, fontWeight: "700" }}>Preview</Text>
-            </Pressable>
-
-            <Pressable
-              onPress={onPublish}
-              style={{
-                flex: 1,
-                backgroundColor: ORANGE,
-                borderRadius: RADIUS,
-                paddingVertical: 14,
-                alignItems: "center",
-              }}
-            >
-              <Text style={{ color: "#111", fontWeight: "800" }}>Publish</Text>
-            </Pressable>
-          </View>
-        </ScrollView>
-
-        {/* Floating quick-add toolbar (so you don’t scroll back up) */}
-        <View
-          pointerEvents="box-none"
-          style={{
-            position: "absolute",
-            right: 16,
-            bottom: Math.max(16, insets.bottom + 8),
-            gap: 10,
-          }}
-        >
+        {/* ACTIONS */}
+        <View style={{ height: 20 }} />
+        <View style={{ flexDirection: "row" }}>
           <Pressable
-            onPress={addIngredient}
+            onPress={saveDraft}
+            disabled={saving}
             style={{
-              backgroundColor: ORANGE,
-              borderRadius: 999,
-              paddingHorizontal: 14,
-              paddingVertical: 10,
+              flex: 1,
+              backgroundColor: CARD,
+              borderColor: BORDER,
+              borderWidth: 1,
+              borderRadius: RADIUS,
+              paddingVertical: 14,
+              alignItems: "center",
+              marginRight: 12,
+              opacity: saving ? 0.6 : 1,
             }}
           >
-            <Text style={{ color: "#111", fontWeight: "800" }}>+ Ingredient</Text>
+            <Text style={{ color: TEXT, fontWeight: "700" }}>{saving ? "Saving…" : "Save Draft"}</Text>
           </Pressable>
+
           <Pressable
-            onPress={addStep}
+            onPress={onPreview}
             style={{
-              backgroundColor: ORANGE,
-              borderRadius: 999,
-              paddingHorizontal: 14,
-              paddingVertical: 10,
+              flex: 1,
+              backgroundColor: CARD,
+              borderColor: BORDER,
+              borderWidth: 1,
+              borderRadius: RADIUS,
+              paddingVertical: 14,
+              alignItems: "center",
+              marginRight: 12,
             }}
           >
-            <Text style={{ color: "#111", fontWeight: "800" }}>+ Step</Text>
+            <Text style={{ color: TEXT, fontWeight: "700" }}>Preview</Text>
+          </Pressable>
+
+          <Pressable
+            onPress={onPublish}
+            style={{
+              flex: 1,
+              backgroundColor: ACCENT,
+              borderRadius: RADIUS,
+              paddingVertical: 14,
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ color: "#111", fontWeight: "800" }}>Publish</Text>
           </Pressable>
         </View>
-      </View>
+
+        {/* bottom spacer so publish isn't blocked by tab bar on short screens */}
+        <View style={{ height: 24 + insets.bottom }} />
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -450,7 +430,7 @@ function SmallButton({ label, onPress }: { label: string; onPress: () => void })
     <Pressable
       onPress={onPress}
       style={{
-        backgroundColor: ORANGE,
+        backgroundColor: ACCENT,
         borderRadius: 999,
         paddingHorizontal: 12,
         paddingVertical: 8,
@@ -514,7 +494,7 @@ const rowInputStyle = {
 const pillDelete = {
   marginTop: 10,
   alignSelf: "flex-start",
-  backgroundColor: ORANGE,
+  backgroundColor: ACCENT,
   borderRadius: 999,
   paddingHorizontal: 12,
   paddingVertical: 8,

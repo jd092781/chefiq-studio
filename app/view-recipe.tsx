@@ -1,10 +1,9 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router, useLocalSearchParams } from "expo-router";
+import { Link, router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -70,21 +69,26 @@ export default function ViewRecipe() {
   const params = useLocalSearchParams<{ id?: string; recipe?: string }>();
   const [favorites, setFavorites] = useState<string[]>([]);
   const [isFav, setIsFav] = useState<boolean>(false);
+  const [fatal, setFatal] = useState<string | null>(null);
 
   const recipe: RecipeFull | undefined = useMemo(() => {
-    if (params.recipe) {
-      try {
+    try {
+      if (params.recipe) {
         const decoded = decodeURIComponent(String(params.recipe));
         const raw = JSON.parse(decoded);
 
         const normArray = (arr: any[] | undefined) =>
-          (arr ?? []).map((x: any) => (typeof x === "string" ? x : x?.text ?? "")).filter(Boolean);
+          Array.isArray(arr)
+            ? arr
+                .map((x: any) => (typeof x === "string" ? x : x?.text ?? ""))
+                .filter(Boolean)
+            : [];
 
         const r: RecipeFull = {
           id: raw.id ?? String(Date.now()),
           title: raw.title ?? "Untitled",
           description: raw.description ?? "",
-          coverUri: raw.coverUri,
+          coverUri: raw.coverUri ?? undefined,
           ingredients: normArray(raw.ingredients),
           steps: normArray(raw.steps),
           meta: raw.meta ?? undefined,
@@ -92,35 +96,52 @@ export default function ViewRecipe() {
           applianceSupport: raw.applianceSupport ?? undefined,
         };
         return r;
-      } catch {
-        // fall through
       }
+      return findRecipeById(params.id);
+    } catch (e: any) {
+      console.error("Recipe parse error:", e);
+      setFatal("Sorry—this recipe couldn’t be opened.");
+      return undefined;
     }
-    return findRecipeById(params.id);
   }, [params.id, params.recipe]);
 
   const meta = getMeta(recipe);
 
-  // Load favorites + add to history on open
   useEffect(() => {
     (async () => {
-      const favRaw = await AsyncStorage.getItem("chefiq_favorites");
-      const favs = favRaw ? (JSON.parse(favRaw) as string[]) : [];
-      setFavorites(favs);
-      if (recipe?.id) setIsFav(favs.includes(recipe.id));
+      try {
+        const favRaw = await AsyncStorage.getItem("chefiq_favorites");
+        const favs = favRaw ? (JSON.parse(favRaw) as string[]) : [];
+        setFavorites(favs);
+        if (recipe?.id) setIsFav(favs.includes(recipe.id));
 
-      if (recipe?.id) {
-        const histRaw = await AsyncStorage.getItem("chefiq_history");
-        const cur = histRaw ? (JSON.parse(histRaw) as string[]) : [];
-        const next = [recipe.id, ...cur.filter((x) => x !== recipe.id)].slice(0, 30);
-        await AsyncStorage.setItem("chefiq_history", JSON.stringify(next));
-      }
+        if (recipe?.id) {
+          const histRaw = await AsyncStorage.getItem("chefiq_history");
+          const cur = histRaw ? (JSON.parse(histRaw) as string[]) : [];
+          const next = [recipe.id, ...cur.filter((x) => x !== recipe.id)].slice(0, 30);
+          await AsyncStorage.setItem("chefiq_history", JSON.stringify(next));
+        }
+      } catch {}
     })();
   }, [recipe?.id]);
 
+  if (fatal) {
+    return (
+      <SafeAreaView style={[styles.screen, { padding: 16 }]}>
+        <View style={[styles.card, { borderColor: "#CC4444" }]}>
+          <Text style={[styles.cardTitle, { color: "#FFCCCC" }]}>Something went wrong</Text>
+          <Text style={{ color: "#FFEEEE", marginBottom: 12 }}>{fatal}</Text>
+          <Pressable onPress={() => router.back()} style={[styles.button, { backgroundColor: ACCENT }]}>
+            <Text style={styles.buttonText}>Go back</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   if (!recipe) {
     return (
-      <SafeAreaView style={[styles.screen, { alignItems: "center", justifyContent: "center" }]}>
+      <SafeAreaView style={[styles.screen, { alignItems: "center", justifyContent: "center", padding: 16 }]}>
         <Text style={{ color: TEXT, fontSize: 18, marginBottom: 8 }}>Recipe not found</Text>
         <Pressable onPress={() => router.back()} style={[styles.button, { paddingHorizontal: 18, paddingVertical: 10 }]}>
           <Text style={styles.buttonText}>Go Back</Text>
@@ -144,118 +165,99 @@ export default function ViewRecipe() {
   };
 
   return (
-    <SafeAreaView style={styles.screen} edges={["top"]}>
-      {/* IMPORTANT: give the scroll container its own area; avoid flex:1 on ScrollView for web */}
-      <View style={styles.scrollArea}>
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator
-          keyboardShouldPersistTaps="handled"
-          // small helper for web: make sure the node can scroll if parent ever constrains height
-          style={Platform.select({ web: { overflow: "auto" } as any, default: undefined })}
-        >
-          {/* Cover with heart */}
-          <View>
-            <FallbackImage
-              source={localSrc ?? (recipe.coverUri ? { uri: recipe.coverUri } : undefined)}
-              fallback={require("../assets/placeholder-recipe.jpg")}
-              style={styles.hero}
-              resizeMode="cover"
-            />
-            <Pressable style={styles.heart} onPress={toggleFavorite}>
-              <Ionicons name={isFav ? "heart" : "heart-outline"} size={22} color={isFav ? ACCENT : "#fff"} />
-            </Pressable>
-          </View>
+    <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 36 }}>
+        {/* Cover with heart */}
+        <View>
+          <FallbackImage
+            source={localSrc ?? (recipe.coverUri ? { uri: recipe.coverUri } : undefined)}
+            fallback={require("../assets/placeholder-recipe.jpg")}
+            style={styles.hero}
+            resizeMode="cover"
+          />
+          <Pressable style={styles.heart} onPress={toggleFavorite}>
+            <Ionicons name={isFav ? "heart" : "heart-outline"} size={22} color={isFav ? ACCENT : "#fff"} />
+          </Pressable>
+        </View>
 
-          {/* Title */}
-          <View style={{ paddingHorizontal: 16, paddingTop: 14 }}>
-            <Text style={styles.title}>{recipe.title}</Text>
-            {!!recipe.description && <Text style={styles.description}>{recipe.description}</Text>}
-          </View>
+        {/* Title */}
+        <View style={{ paddingHorizontal: 16, paddingTop: 14 }}>
+          <Text style={styles.title}>{recipe.title}</Text>
+          {!!recipe.description && <Text style={styles.description}>{recipe.description}</Text>}
+        </View>
 
-          {/* 4-spec grid */}
-          <View style={styles.specRow}>
-            <View style={styles.specCard}>
-              <Text style={styles.specLabel}>DIFFICULTY</Text>
-              <Text style={styles.specValue}>{meta.difficulty}</Text>
+        {/* 4-spec grid */}
+        <View style={styles.specRow}>
+          <View style={styles.specCard}>
+            <Text style={styles.specLabel}>DIFFICULTY</Text>
+            <Text style={styles.specValue}>{meta.difficulty}</Text>
+          </View>
+          <View style={styles.specCard}>
+            <Text style={styles.specLabel}>ACTIVE TIME</Text>
+            <Text style={styles.specValue}>{meta.active} Min</Text>
+          </View>
+          <View style={styles.specCard}>
+            <Text style={styles.specLabel}>TOTAL TIME</Text>
+            <Text style={styles.specValue}>{meta.total} Min</Text>
+          </View>
+          <View style={styles.specCard}>
+            <Text style={styles.specLabel}>YIELD</Text>
+            <Text style={styles.specValue}>{meta.yieldText}</Text>
+          </View>
+        </View>
+
+        {/* Availability banners */}
+        <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
+          {!miniOvenOK && (
+            <View style={styles.banner}>
+              <Text style={styles.bannerText}>Not available for iQ Mini Oven</Text>
             </View>
-            <View style={styles.specCard}>
-              <Text style={styles.specLabel}>ACTIVE TIME</Text>
-              <Text style={styles.specValue}>{meta.active} Min</Text>
+          )}
+          {!cookerOK && (
+            <View style={styles.banner}>
+              <Text style={styles.bannerText}>Not available for iQ Cooker</Text>
             </View>
-            <View style={styles.specCard}>
-              <Text style={styles.specLabel}>TOTAL TIME</Text>
-              <Text style={styles.specValue}>{meta.total} Min</Text>
-            </View>
-            <View style={styles.specCard}>
-              <Text style={styles.specLabel}>YIELD</Text>
-              <Text style={styles.specValue}>{meta.yieldText}</Text>
-            </View>
-          </View>
+          )}
+        </View>
 
-          {/* Availability banners */}
-          <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
-            {!miniOvenOK && (
-              <View style={styles.banner}>
-                <Text style={styles.bannerText}>Not available for iQ Mini Oven</Text>
-              </View>
-            )}
-            {!cookerOK && (
-              <View style={styles.banner}>
-                <Text style={styles.bannerText}>Not available for iQ Cooker</Text>
-              </View>
-            )}
-          </View>
+        {/* Ingredients */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Ingredients</Text>
+          {(recipe.ingredients ?? []).map((it, idx) => (
+            <Text key={idx} style={styles.li}>• {it}</Text>
+          ))}
+        </View>
 
-          {/* Ingredients */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Ingredients</Text>
-            {(recipe.ingredients ?? []).map((it, idx) => (
-              <Text key={idx} style={styles.li}>• {it}</Text>
-            ))}
-          </View>
+        {/* Steps (overview) */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Steps (overview)</Text>
+          {(recipe.steps ?? []).map((s, i) => (
+            <Text key={i} style={styles.li}>{i + 1}. {s}</Text>
+          ))}
+        </View>
 
-          {/* Steps (overview) */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Steps (overview)</Text>
-            {(recipe.steps ?? []).map((s, i) => (
-              <Text key={i} style={styles.li}>{i + 1}. {s}</Text>
-            ))}
-          </View>
-
-          {/* Guided button */}
-          <View style={{ paddingHorizontal: 16, marginTop: 8, marginBottom: 18 }}>
+        {/* Guided button */}
+        <View style={{ paddingHorizontal: 16, marginTop: 8, marginBottom: 24 }}>
+          <Link href={{ pathname: "/guided", params: { id: recipe.id } }} asChild prefetch>
             <Pressable
               onPress={() => {
                 if (!miniOvenOK && !cookerOK) {
                   Alert.alert("Heads up", "This recipe doesn't list supported appliances yet.");
                 }
-                router.push({ pathname: "/guided", params: { id: recipe.id } });
               }}
               style={styles.button}
             >
               <Text style={styles.buttonText}>Start Guided Cooking</Text>
             </Pressable>
-          </View>
-        </ScrollView>
-      </View>
+          </Link>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: SURFACE },
-
-  // Give the ScrollView its own container area
-  scrollArea: {
-    flex: 1,
-    // For web, ensure the container can grow and scroll normally
-    ...(Platform.OS === "web" ? { minHeight: 0 } : null),
-  },
-  scrollContent: {
-    paddingBottom: 28,
-  },
-
   hero: { width: "100%", height: 260, backgroundColor: CARD },
   heart: {
     position: "absolute",
@@ -270,6 +272,7 @@ const styles = StyleSheet.create({
   title: { color: TEXT, fontSize: 24, fontWeight: "700", marginBottom: 6 },
   description: { color: MUTED, fontSize: 14 },
 
+  /* 4-spec grid */
   specRow: {
     flexDirection: "row",
     gap: 10,
