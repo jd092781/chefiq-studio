@@ -100,7 +100,6 @@ function TimePill({ minutes }: { minutes: number }) {
 }
 
 export default function Home() {
-  const [name, setName] = useState<string>("Jeff");
   const [favorites, setFavorites] = useState<string[]>([]);
   const [history, setHistory] = useState<string[]>([]);
   const [inProgress, setInProgress] = useState<InProgress | null>(null);
