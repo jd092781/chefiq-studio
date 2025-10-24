@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "ChefIQ Studio",
-    "slug": "chefiq-starter",
+    "slug": "chefiq-studio",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/studioiq-applogo.png",
@@ -49,8 +49,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "https://expo.dev/accounts/jdypko/projects/chefiq-studio"
+        "projectId": "69655273-c48f-46b2-9756-0355f4aab8a5"
       }
-    }
+    },
+    "owner": "jdypko"
   }
 }
