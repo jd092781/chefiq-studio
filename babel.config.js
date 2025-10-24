@@ -10,7 +10,6 @@ module.exports = function (api) {
   // Only include the worklets plugin if it's installed.
   try {
     require.resolve('react-native-worklets/plugin');
-    plugins.push('react-native-worklets/plugin');
   } catch (e) {
     // Not installed – skip. This avoids CI/Expo build crashes.
   }
