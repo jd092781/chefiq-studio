@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "ChefIQ Studio",
-    "slug": "chefiq-starter",
+    "slug": "chefiq-studio",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/studioiq-applogo.png",
