@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "ChefIQ Studio",
-    "slug": "chefiq-studio",
+    "slug": "chefiq-starter",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/studioiq-applogo.png",
@@ -15,9 +15,7 @@
     "updates": {
       "fallbackToCacheTimeout": 0
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.chefiq.studio"
@@ -51,7 +49,6 @@
       "eas": {
         "projectId": "69655273-c48f-46b2-9756-0355f4aab8a5"
       }
-    },
-    "owner": "jdypko"
+    }
   }
 }

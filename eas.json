@@ -1,16 +1,16 @@
 {
-  "cli": {
-    "appVersionSource": "remote"
-  },
+  "cli": { "version": ">= 13.2.0" },
   "build": {
     "preview": {
+      "workflow": "managed",
       "distribution": "internal",
-      "android": { "buildType": "apk" }
+      "android": { "buildType": "apk" },
+      "ios": { "simulator": true }
     },
-    "development": {
-      "developmentClient": true,
-      "distribution": "internal",
-      "android": { "buildType": "apk" }
+    "production": {
+      "workflow": "managed",
+      "android": { "buildType": "app-bundle" },
+      "ios": { "autoIncrement": true }
     }
   },
   "submit": {
