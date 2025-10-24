@@ -1,15 +1,12 @@
 {
-  "cli": { "version": ">= 12.5.0" },
+  "cli": { "version": ">= 11.0.0" },
   "build": {
     "preview": {
-      "developmentClient": true,
       "android": { "buildType": "apk" }
     },
     "production": {
       "android": { "buildType": "app-bundle" }
     }
   },
-  "submit": {
-    "production": { "android": { "track": "internal" } }
-  }
+  "submit": { "production": {} }
 }
