@@ -2,11 +2,13 @@
   "expo": {
     "name": "ChefIQ Studio",
     "slug": "chefiq-studio",
-    "version": "1.1.0",
+    "owner": "jdypko",
+    "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/studioiq-applogo.png",
     "scheme": "chefiq",
     "userInterfaceStyle": "automatic",
+
+    "icon": "./assets/studioiq-applogo.png",
     "splash": {
       "image": "./assets/studioiq-splashscreen.png",
       "resizeMode": "contain",
@@ -17,27 +19,16 @@
       "barStyle": "light-content"
     },
 
-    // iOS section can stay even if you’re not publishing to iOS.
-    // It won’t affect Android builds.
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.jdypko.chefiqstudio"
-    },
-
     "android": {
-      "package": "com.jdypko.chefiqstudio",
-      "versionCode": 2,
+      "package": "com.jd092781.chefiqstudio",
+      "softwareKeyboardLayoutMode": "resize",
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
+        "android.permission.READ_MEDIA_IMAGES",
         "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.READ_MEDIA_IMAGES"
-      ],
-      "softwareKeyboardLayoutMode": "resize",
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/studioiq-applogo.png",
-        "backgroundColor": "#000000"
-      }
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
     },
 
     "plugins": [
@@ -56,11 +47,8 @@
 
     "extra": {
       "eas": {
-        "projectId": "69655273-c48f-46b2-9756-0355f4aab8a5"
+        "projectId": "69655273-c48f-46b2-9756-0355f4aab8a"
       }
-    },
-
-    "owner": "jdypko",
-    "assetBundlePatterns": ["**/*"]
+    }
   }
 }
