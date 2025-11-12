@@ -315,7 +315,7 @@ export default function Home() {
   const onPressCreator = (handle: string) => {
     const clean = handle.replace("@", "");
     router.push({
-      pathname: "/creator/[handle]",
+      pathname: "/creator",
       params: { handle: clean },
     });
   };
