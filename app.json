@@ -2,13 +2,11 @@
   "expo": {
     "name": "ChefIQ Studio",
     "slug": "chefiq-studio",
-    "owner": "jdypko",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/studioiq-applogo.png",
     "scheme": "chefiq",
     "userInterfaceStyle": "automatic",
-
-    "icon": "./assets/studioiq-applogo.png",
     "splash": {
       "image": "./assets/studioiq-splashscreen.png",
       "resizeMode": "contain",
@@ -18,19 +16,20 @@
       "backgroundColor": "#0F0F0F",
       "barStyle": "light-content"
     },
-
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.jd092781.chefiqstudio"
+    },
     "android": {
       "package": "com.jd092781.chefiqstudio",
-      "softwareKeyboardLayoutMode": "resize",
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO",
-        "android.permission.READ_MEDIA_IMAGES",
         "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE"
-      ]
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "softwareKeyboardLayoutMode": "resize"
     },
-
     "plugins": [
       [
         "expo-image-picker",
@@ -38,17 +37,18 @@
           "photosPermission": "Allow $(PRODUCT_NAME) to access your photos to set cover images for recipes."
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-router",
+      "expo-web-browser"
     ],
-
     "experiments": {
       "typedRoutes": true
     },
-
     "extra": {
       "eas": {
-        "projectId": "69655273-c48f-46b2-9756-0355f4aab8a"
+        "projectId": "69655273-c48f-46b2-9756-0355f4aab8a5"
       }
-    }
+    },
+    "owner": "jdypko"
   }
 }
