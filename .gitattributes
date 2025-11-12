@@ -1,0 +1,2 @@
+# Normalize line endings & avoid odd attributes from Windows/OneDrive
+* text=auto eol=lf
