@@ -1,27 +1,14 @@
 {
   "cli": {
-    "version": ">= 6.0.0",
-    "appVersionSource": "remote"
+    "version": ">= 3.0.0"
   },
   "build": {
-    "development": {
-      "developmentClient": true,
-      "distribution": "internal"
-    },
-    "preview": {
-      "distribution": "internal"
-    },
-    "production": {
-      "autoIncrement": true
-    },
-    "preview-android-apk": {
-      "extends": "preview",
-      "android": {
-        "buildType": "apk"
-      }
+    "android": {
+      "env": {
+        "EXPO_USE_NPM": "true"
+      },
+      "node": "18.17.0",
+      "version": 1
     }
-  },
-  "submit": {
-    "production": {}
   }
 }
