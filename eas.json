@@ -4,11 +4,10 @@
   },
   "build": {
     "android": {
+      "node": "18.17.0",
       "env": {
         "EXPO_USE_NPM": "true"
-      },
-      "node": "18.17.0",
-      "version": 1
+      }
     }
   }
 }
