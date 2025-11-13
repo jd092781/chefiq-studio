@@ -4,11 +4,7 @@
   },
   "build": {
     "production": {
-      "node": "18.17.0",
-      "installCommand": "npm install",
-      "env": {
-        "EXPO_USE_NPM": "true"
-      }
+      "node": "18.17.0"
     }
   }
 }
