@@ -70,6 +70,16 @@ const CATEGORY_OPTIONS = PRESETS.filter(
   (p) => !["all", "favorites", "history"].includes(p.slug)
 );
 
+// shared helper so both Save Draft and Publish keep things in My Recipes
+async function persistDraft(draft: RecipeDraft) {
+  const existingRaw = await AsyncStorage.getItem(DRAFT_KEY);
+  const list: RecipeDraft[] = existingRaw ? JSON.parse(existingRaw) : [];
+  const idx = list.findIndex((d) => d.id === draft.id);
+  if (idx >= 0) list[idx] = draft;
+  else list.unshift(draft);
+  await AsyncStorage.setItem(DRAFT_KEY, JSON.stringify(list));
+}
+
 export default function CreateScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -91,6 +101,16 @@ export default function CreateScreen() {
 
   // Category selection
   const [selectedPreset, setSelectedPreset] = useState<string | undefined>(undefined);
+
+  // main scroll ref (for keyboard visibility tweaks)
+  const scrollRef = useRef<ScrollView>(null);
+
+  const scrollToEnd = useCallback(() => {
+    // next frame so content has rendered
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    });
+  }, []);
 
   // ---- Category chips scroll indicator state ----
   const catScrollRef = useRef<ScrollView>(null);
@@ -136,19 +156,25 @@ export default function CreateScreen() {
   const addIngredient = useCallback(() => {
     setIngredients((prev) => [...prev, { id: newId(), text: "" }]);
   }, []);
+
   const updateIngredient = useCallback((iid: string, text: string) => {
     setIngredients((prev) => prev.map((i) => (i.id === iid ? { ...i, text } : i)));
   }, []);
+
   const removeIngredient = useCallback((iid: string) => {
     setIngredients((prev) => prev.filter((i) => i.id !== iid));
   }, []);
 
   const addStep = useCallback(() => {
     setSteps((prev) => [...prev, { id: newId(), text: "" }]);
-  }, []);
+    // after adding a step, scroll so the new field is visible above the keyboard
+    scrollToEnd();
+  }, [scrollToEnd]);
+
   const updateStep = useCallback((sid: string, text: string) => {
     setSteps((prev) => prev.map((s) => (s.id === sid ? { ...s, text } : s)));
   }, []);
+
   const removeStep = useCallback((sid: string) => {
     setSteps((prev) => prev.filter((s) => s.id !== sid));
   }, []);
@@ -202,29 +228,14 @@ export default function CreateScreen() {
     setSaving(true);
     try {
       const draft = buildDraft();
-      const existingRaw = await AsyncStorage.getItem(DRAFT_KEY);
-      const list: RecipeDraft[] = existingRaw ? JSON.parse(existingRaw) : [];
-      const idx = list.findIndex((d) => d.id === id);
-      if (idx >= 0) list[idx] = draft;
-      else list.unshift(draft);
-      await AsyncStorage.setItem(DRAFT_KEY, JSON.stringify(list));
-      Alert.alert("Saved", "Draft saved locally.");
+      await persistDraft(draft);
+      Alert.alert("Saved", "Draft saved locally and visible in My Recipes.");
     } catch {
       Alert.alert("Error", "Could not save your draft.");
     } finally {
       setSaving(false);
     }
-  }, [
-    id,
-    title,
-    description,
-    coverUri,
-    ingredients,
-    steps,
-    supportsMiniOven,
-    supportsCooker,
-    selectedPreset,
-  ]);
+  }, [buildDraft]);
 
   // ---- PUBLISH ----
   const onPublish = useCallback(async () => {
@@ -238,6 +249,13 @@ export default function CreateScreen() {
     }
 
     const draft = buildDraft();
+
+    // keep a copy in local storage so it appears in My Recipes
+    try {
+      await persistDraft(draft);
+    } catch {
+      // non-fatal for publish
+    }
 
     await upsertUserRecipe({
       id: draft.id,
@@ -270,7 +288,7 @@ export default function CreateScreen() {
           }),
       },
     ]);
-  }, [router, buildDraft, supportsMiniOven, supportsCooker, selectedPreset]);
+  }, [buildDraft, router, selectedPreset, supportsMiniOven, supportsCooker]);
 
   // ---- PREVIEW ----
   const onPreview = useCallback(() => {
@@ -361,7 +379,13 @@ export default function CreateScreen() {
                   >
                     <Icon size={16} color={ORANGE} />
                   </View>
-                  <Text style={{ color: active ? "#111" : TEXT, fontWeight: "800", fontSize: 13 }}>
+                  <Text
+                    style={{
+                      color: active ? "#111" : TEXT,
+                      fontWeight: "800",
+                      fontSize: 13,
+                    }}
+                  >
                     {opt.label}
                   </Text>
                 </Pressable>
@@ -410,13 +434,13 @@ export default function CreateScreen() {
 
   return (
     <KeyboardAvoidingView
-      enabled={Platform.OS === "ios"} // ⬅️ only iOS uses keyboard avoidance
-      behavior="padding"
+      behavior={Platform.select({ ios: "padding", android: "height" })}
       keyboardVerticalOffset={Platform.OS === "ios" ? 12 : 0}
       style={{ flex: 1, backgroundColor: SURFACE }}
     >
-      <View style={{ flex: 1, backgroundColor: SURFACE }}>
+      <View style={{ flex: 1 }}>
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={{
             paddingHorizontal: 16,
             paddingBottom: bottomPad, // enough space to scroll past the dock
@@ -435,7 +459,9 @@ export default function CreateScreen() {
               marginBottom: 12,
             }}
           >
-            <Text style={{ color: TEXT, fontSize: 16, fontWeight: "800", marginBottom: 8 }}>
+            <Text
+              style={{ color: TEXT, fontSize: 16, fontWeight: "800", marginBottom: 8 }}
+            >
               Select appliance(s)
             </Text>
             <Text style={{ color: MUTED, marginBottom: 10 }}>
@@ -466,7 +492,9 @@ export default function CreateScreen() {
               marginBottom: 16,
             }}
           >
-            <Text style={{ color: TEXT, fontSize: 16, fontWeight: "800", marginBottom: 8 }}>
+            <Text
+              style={{ color: TEXT, fontSize: 16, fontWeight: "800", marginBottom: 8 }}
+            >
               Preset category
             </Text>
             <Text style={{ color: MUTED, marginBottom: 10 }}>
@@ -494,7 +522,13 @@ export default function CreateScreen() {
                 resizeMode="cover"
               />
             ) : (
-              <View style={{ padding: 20, alignItems: "center", justifyContent: "center" }}>
+              <View
+                style={{
+                  padding: 20,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
                 <View
                   style={{
                     width: 56,
@@ -509,10 +543,14 @@ export default function CreateScreen() {
                 >
                   <Text style={{ color: MUTED, fontSize: 24 }}>＋</Text>
                 </View>
-                <Text style={{ color: TEXT, fontSize: 16, fontWeight: "600" }}>
+                <Text
+                  style={{ color: TEXT, fontSize: 16, fontWeight: "600" }}
+                >
                   Add Cover Photo
                 </Text>
-                <Text style={{ color: MUTED, fontSize: 12, marginTop: 4 }}>
+                <Text
+                  style={{ color: MUTED, fontSize: 12, marginTop: 4 }}
+                >
                   Optional hero image
                 </Text>
               </View>
@@ -563,8 +601,15 @@ export default function CreateScreen() {
                     placeholderTextColor={MUTED}
                     style={rowInputStyle}
                   />
-                  <Pressable onPress={() => removeIngredient(item.id)} style={pillDelete}>
-                    <Text style={{ color: "#111", fontWeight: "800" }}>Del</Text>
+                  <Pressable
+                    onPress={() => removeIngredient(item.id)}
+                    style={pillDelete}
+                  >
+                    <Text
+                      style={{ color: "#111", fontWeight: "800" }}
+                    >
+                      Del
+                    </Text>
                   </Pressable>
                 </RowCard>
               )}
@@ -573,7 +618,10 @@ export default function CreateScreen() {
           )}
 
           {/* STEPS */}
-          <SectionHeader title="Steps" right={<SmallButton label="Add" onPress={addStep} />} />
+          <SectionHeader
+            title="Steps"
+            right={<SmallButton label="Add" onPress={addStep} />}
+          />
           {steps.length === 0 ? (
             <EmptyRow text="No steps yet" />
           ) : (
@@ -583,8 +631,15 @@ export default function CreateScreen() {
               scrollEnabled={false}
               renderItem={({ item, index }) => (
                 <RowCard>
-                  <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <Text style={{ color: MUTED, width: 48 }}>Step {index + 1}</Text>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text style={{ color: MUTED, width: 48 }}>
+                      Step {index + 1}
+                    </Text>
                     <TextInput
                       value={item.text}
                       onChangeText={(t) => updateStep(item.id, t)}
@@ -592,10 +647,18 @@ export default function CreateScreen() {
                       placeholderTextColor={MUTED}
                       style={[rowInputStyle, { flex: 1 }]}
                       multiline
+                      onFocus={scrollToEnd}
                     />
                   </View>
-                  <Pressable onPress={() => removeStep(item.id)} style={pillDelete}>
-                    <Text style={{ color: "#111", fontWeight: "800" }}>Del</Text>
+                  <Pressable
+                    onPress={() => removeStep(item.id)}
+                    style={pillDelete}
+                  >
+                    <Text
+                      style={{ color: "#111", fontWeight: "800" }}
+                    >
+                      Del
+                    </Text>
                   </Pressable>
                 </RowCard>
               )}
@@ -681,7 +744,9 @@ export default function CreateScreen() {
                   alignItems: "center",
                 }}
               >
-                <Text style={{ color: TEXT, fontWeight: "700" }}>Preview</Text>
+                <Text style={{ color: TEXT, fontWeight: "700" }}>
+                  Preview
+                </Text>
               </Pressable>
 
               <Pressable
@@ -694,8 +759,9 @@ export default function CreateScreen() {
                   alignItems: "center",
                 }}
               >
-                {/* SHORT LABEL SO IT DOESN'T CLIP */}
-                <Text style={{ color: "#111", fontWeight: "800" }}>Publish</Text>
+                <Text style={{ color: "#111", fontWeight: "800" }}>
+                  Publish
+                </Text>
               </Pressable>
             </View>
 
@@ -712,7 +778,9 @@ export default function CreateScreen() {
                   alignItems: "center",
                 }}
               >
-                <Text style={{ color: "#111", fontWeight: "800" }}>+ Ingredient</Text>
+                <Text style={{ color: "#111", fontWeight: "800" }}>
+                  + Ingredient
+                </Text>
               </Pressable>
               <Pressable
                 onPress={addStep}
@@ -725,7 +793,9 @@ export default function CreateScreen() {
                   alignItems: "center",
                 }}
               >
-                <Text style={{ color: "#111", fontWeight: "800" }}>+ Step</Text>
+                <Text style={{ color: "#111", fontWeight: "800" }}>
+                  + Step
+                </Text>
               </Pressable>
             </View>
           </View>
@@ -747,8 +817,17 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function SectionHeader({ title, right }: { title: string; right?: React.ReactNode }) {
   return (
-    <View style={{ marginTop: 12, marginBottom: 8, flexDirection: "row", alignItems: "center" }}>
-      <Text style={{ color: TEXT, fontSize: 18, fontWeight: "800", flex: 1 }}>{title}</Text>
+    <View
+      style={{
+        marginTop: 12,
+        marginBottom: 8,
+        flexDirection: "row",
+        alignItems: "center",
+      }}
+    >
+      <Text style={{ color: TEXT, fontSize: 18, fontWeight: "800", flex: 1 }}>
+        {title}
+      </Text>
       {right}
     </View>
   );
