@@ -55,6 +55,7 @@ type RecipeDraft = {
 
 const DRAFT_KEY = "chefIQ_drafts_v2";
 const POINTS_KEY = "chefiq_creator_points";
+
 const newId = () => {
   try {
     const g: any = globalThis as any;
@@ -196,24 +197,59 @@ export default function CreateScreen() {
     lastUpdated: Date.now(),
   });
 
+  const buildUserRecipePayload = (isDraft: boolean): any => {
+    const draft = buildDraft();
+    return {
+      id: draft.id,
+      title: draft.title || "Untitled",
+      description: draft.description || "",
+      coverUri: draft.coverUri,
+      ingredients: draft.ingredients.map((i) => i.text).filter(Boolean),
+      steps: draft.steps.map((s) => s.text).filter(Boolean),
+      preset: draft.preset || "vegetarian", // safe default
+      applianceSupport: draft.applianceSupport,
+      meta: { draft: isDraft },
+      createdAt: Date.now(),
+      avgRating: 0,
+      ratingsCount: 0,
+    };
+  };
+
   // ---- SAVE DRAFT ----
   const saveDraft = useCallback(async () => {
     setSaving(true);
     try {
       const draft = buildDraft();
+
+      // 1) Save to local drafts
       const existingRaw = await AsyncStorage.getItem(DRAFT_KEY);
       const list: RecipeDraft[] = existingRaw ? JSON.parse(existingRaw) : [];
       const idx = list.findIndex((d) => d.id === id);
       if (idx >= 0) list[idx] = draft;
       else list.unshift(draft);
       await AsyncStorage.setItem(DRAFT_KEY, JSON.stringify(list));
-      Alert.alert("Saved", "Draft saved locally.");
+
+      // 2) Also surface in My Recipes as a draft
+      const userPayload = buildUserRecipePayload(true);
+      await upsertUserRecipe(userPayload);
+
+      Alert.alert("Saved", "Draft saved locally and added to My Recipes.");
     } catch {
       Alert.alert("Error", "Could not save your draft.");
     } finally {
       setSaving(false);
     }
-  }, [id, title, description, coverUri, ingredients, steps, supportsMiniOven, supportsCooker, selectedPreset]);
+  }, [
+    id,
+    title,
+    description,
+    coverUri,
+    ingredients,
+    steps,
+    supportsMiniOven,
+    supportsCooker,
+    selectedPreset,
+  ]);
 
   // ---- PUBLISH ----
   const onPublish = useCallback(async () => {
@@ -226,40 +262,44 @@ export default function CreateScreen() {
       return;
     }
 
-    const draft = buildDraft();
+    try {
+      const userPayload = buildUserRecipePayload(false);
+      await upsertUserRecipe(userPayload);
 
-    await upsertUserRecipe({
-      id: draft.id,
-      title: draft.title || "Untitled",
-      description: draft.description || "",
-      coverUri: draft.coverUri,
-      ingredients: draft.ingredients.map((i) => i.text).filter(Boolean),
-      steps: draft.steps.map((s) => s.text).filter(Boolean),
-      preset: draft.preset!,
-      applianceSupport: draft.applianceSupport,
-      meta: undefined,
-      createdAt: Date.now(),
-      avgRating: 0,
-      ratingsCount: 0,
-    });
+      // Remove from drafts after publishing
+      const existingRaw = await AsyncStorage.getItem(DRAFT_KEY);
+      const list: RecipeDraft[] = existingRaw ? JSON.parse(existingRaw) : [];
+      const remaining = list.filter((d) => d.id !== id);
+      await AsyncStorage.setItem(DRAFT_KEY, JSON.stringify(remaining));
 
-    const raw = await AsyncStorage.getItem(POINTS_KEY);
-    const current = raw ? Number(raw) || 0 : 0;
-    const next = current + 25;
-    await AsyncStorage.setItem(POINTS_KEY, String(next));
+      const raw = await AsyncStorage.getItem(POINTS_KEY);
+      const current = raw ? Number(raw) || 0 : 0;
+      const next = current + 25;
+      await AsyncStorage.setItem(POINTS_KEY, String(next));
 
-    const payload = draft;
-    Alert.alert("Published 🎉", `You earned +25 Creator Points! Total: ${next}`, [
-      {
-        text: "OK",
-        onPress: () =>
-          router.push({
-            pathname: "/publish",
-            params: { recipe: encodeURIComponent(JSON.stringify(payload)) },
-          }),
-      },
-    ]);
-  }, [router, buildDraft, supportsMiniOven, supportsCooker, selectedPreset]);
+      const payload = buildDraft();
+      Alert.alert("Published 🎉", `You earned +25 Creator Points! Total: ${next}`, [
+        {
+          text: "OK",
+          onPress: () =>
+            router.push({
+              pathname: "/publish",
+              params: { recipe: encodeURIComponent(JSON.stringify(payload)) },
+            }),
+        },
+      ]);
+    } catch {
+      Alert.alert("Error", "Something went wrong while publishing your recipe.");
+    }
+  }, [
+    router,
+    buildDraft,
+    buildUserRecipePayload,
+    id,
+    supportsMiniOven,
+    supportsCooker,
+    selectedPreset,
+  ]);
 
   // ---- PREVIEW ----
   const onPreview = useCallback(() => {
@@ -281,7 +321,7 @@ export default function CreateScreen() {
 
   /** Footer/dock sizing so content can scroll beneath it without being cut off */
   const DOCK_CARD_VPAD = 10 + 8 + 8; // padding + rows gap estimate
-  const DOCK_ROW_H = 44;             // each row button height
+  const DOCK_ROW_H = 44; // each row button height
   const DOCK_ROWS = 2;
   const DOCK_CARD_H = DOCK_CARD_VPAD + DOCK_ROW_H * DOCK_ROWS;
   const DOCK_OUTER_H = DOCK_CARD_H + 12 + insets.bottom; // outer padding + safe area
@@ -339,7 +379,7 @@ export default function CreateScreen() {
                       borderColor: active ? "#111" : BORDER,
                     }}
                   >
-                    <Icon size={16} color={active ? ORANGE : ORANGE} />
+                    <Icon size={16} color={ORANGE} />
                   </View>
                   <Text style={{ color: active ? "#111" : TEXT, fontWeight: "800", fontSize: 13 }}>
                     {opt.label}
@@ -387,8 +427,8 @@ export default function CreateScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.select({ ios: "padding", android: undefined })}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 12 : 0}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={DOCK_OUTER_H}
       style={{ flex: 1, backgroundColor: SURFACE }}
     >
       <View style={{ flex: 1 }}>
@@ -659,7 +699,7 @@ export default function CreateScreen() {
                   alignItems: "center",
                 }}
               >
-                <Text style={{ color: "#111", fontWeight: "800" }}>Publish</Text>
+                <Text style={{ color: "#111", fontWeight: "800" }}>Publish Recipe</Text>
               </Pressable>
             </View>
 

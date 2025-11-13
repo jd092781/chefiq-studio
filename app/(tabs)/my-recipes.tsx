@@ -27,6 +27,7 @@ const RADIUS = 14;
 // ---- Types / Storage ----
 type Ingredient = { id: string; text: string };
 type Step = { id: string; text: string; photoUri?: string };
+
 export type RecipeDraft = {
   id: string;
   title: string;
@@ -34,6 +35,9 @@ export type RecipeDraft = {
   coverUri?: string;
   ingredients: Ingredient[];
   steps: Step[];
+  // extra fields that may be present from create.tsx
+  applianceSupport?: any;
+  preset?: string;
   lastUpdated: number;
 };
 
