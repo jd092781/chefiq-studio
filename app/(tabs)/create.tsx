@@ -197,43 +197,18 @@ export default function CreateScreen() {
     lastUpdated: Date.now(),
   });
 
-  const buildUserRecipePayload = (isDraft: boolean): any => {
-    const draft = buildDraft();
-    return {
-      id: draft.id,
-      title: draft.title || "Untitled",
-      description: draft.description || "",
-      coverUri: draft.coverUri,
-      ingredients: draft.ingredients.map((i) => i.text).filter(Boolean),
-      steps: draft.steps.map((s) => s.text).filter(Boolean),
-      preset: draft.preset || "vegetarian", // safe default
-      applianceSupport: draft.applianceSupport,
-      meta: { draft: isDraft },
-      createdAt: Date.now(),
-      avgRating: 0,
-      ratingsCount: 0,
-    };
-  };
-
   // ---- SAVE DRAFT ----
   const saveDraft = useCallback(async () => {
     setSaving(true);
     try {
       const draft = buildDraft();
-
-      // 1) Save to local drafts
       const existingRaw = await AsyncStorage.getItem(DRAFT_KEY);
       const list: RecipeDraft[] = existingRaw ? JSON.parse(existingRaw) : [];
       const idx = list.findIndex((d) => d.id === id);
       if (idx >= 0) list[idx] = draft;
       else list.unshift(draft);
       await AsyncStorage.setItem(DRAFT_KEY, JSON.stringify(list));
-
-      // 2) Also surface in My Recipes as a draft
-      const userPayload = buildUserRecipePayload(true);
-      await upsertUserRecipe(userPayload);
-
-      Alert.alert("Saved", "Draft saved locally and added to My Recipes.");
+      Alert.alert("Saved", "Draft saved locally.");
     } catch {
       Alert.alert("Error", "Could not save your draft.");
     } finally {
@@ -262,44 +237,40 @@ export default function CreateScreen() {
       return;
     }
 
-    try {
-      const userPayload = buildUserRecipePayload(false);
-      await upsertUserRecipe(userPayload);
+    const draft = buildDraft();
 
-      // Remove from drafts after publishing
-      const existingRaw = await AsyncStorage.getItem(DRAFT_KEY);
-      const list: RecipeDraft[] = existingRaw ? JSON.parse(existingRaw) : [];
-      const remaining = list.filter((d) => d.id !== id);
-      await AsyncStorage.setItem(DRAFT_KEY, JSON.stringify(remaining));
+    await upsertUserRecipe({
+      id: draft.id,
+      title: draft.title || "Untitled",
+      description: draft.description || "",
+      coverUri: draft.coverUri,
+      ingredients: draft.ingredients.map((i) => i.text).filter(Boolean),
+      steps: draft.steps.map((s) => s.text).filter(Boolean),
+      preset: draft.preset!,
+      applianceSupport: draft.applianceSupport,
+      meta: undefined,
+      createdAt: Date.now(),
+      avgRating: 0,
+      ratingsCount: 0,
+    });
 
-      const raw = await AsyncStorage.getItem(POINTS_KEY);
-      const current = raw ? Number(raw) || 0 : 0;
-      const next = current + 25;
-      await AsyncStorage.setItem(POINTS_KEY, String(next));
+    const raw = await AsyncStorage.getItem(POINTS_KEY);
+    const current = raw ? Number(raw) || 0 : 0;
+    const next = current + 25;
+    await AsyncStorage.setItem(POINTS_KEY, String(next));
 
-      const payload = buildDraft();
-      Alert.alert("Published 🎉", `You earned +25 Creator Points! Total: ${next}`, [
-        {
-          text: "OK",
-          onPress: () =>
-            router.push({
-              pathname: "/publish",
-              params: { recipe: encodeURIComponent(JSON.stringify(payload)) },
-            }),
-        },
-      ]);
-    } catch {
-      Alert.alert("Error", "Something went wrong while publishing your recipe.");
-    }
-  }, [
-    router,
-    buildDraft,
-    buildUserRecipePayload,
-    id,
-    supportsMiniOven,
-    supportsCooker,
-    selectedPreset,
-  ]);
+    const payload = draft;
+    Alert.alert("Published 🎉", `You earned +25 Creator Points! Total: ${next}`, [
+      {
+        text: "OK",
+        onPress: () =>
+          router.push({
+            pathname: "/publish",
+            params: { recipe: encodeURIComponent(JSON.stringify(payload)) },
+          }),
+      },
+    ]);
+  }, [router, buildDraft, supportsMiniOven, supportsCooker, selectedPreset]);
 
   // ---- PREVIEW ----
   const onPreview = useCallback(() => {
@@ -313,7 +284,14 @@ export default function CreateScreen() {
   // ---- UI ----
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: SURFACE, alignItems: "center", justifyContent: "center" }}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: SURFACE,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
         <Text style={{ color: MUTED }}>Loading draft…</Text>
       </View>
     );
@@ -353,7 +331,9 @@ export default function CreateScreen() {
               return (
                 <Pressable
                   key={opt.slug}
-                  onPress={() => setSelectedPreset((prev) => (prev === opt.slug ? undefined : opt.slug))}
+                  onPress={() =>
+                    setSelectedPreset((prev) => (prev === opt.slug ? undefined : opt.slug))
+                  }
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
@@ -404,7 +384,10 @@ export default function CreateScreen() {
               const ratio = catContainerW / catContentW;
               const thumbW = Math.max(24, catContainerW * ratio);
               const maxScroll = catContentW - catContainerW;
-              const progress = Math.max(0, Math.min(1, catScrollX / Math.max(1, maxScroll)));
+              const progress = Math.max(
+                0,
+                Math.min(1, catScrollX / Math.max(1, maxScroll))
+              );
               const thumbLeft = (catContainerW - thumbW) * progress;
               return (
                 <View
@@ -427,15 +410,16 @@ export default function CreateScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={DOCK_OUTER_H}
+      enabled={Platform.OS === "ios"} // ⬅️ only iOS uses keyboard avoidance
+      behavior="padding"
+      keyboardVerticalOffset={Platform.OS === "ios" ? 12 : 0}
       style={{ flex: 1, backgroundColor: SURFACE }}
     >
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, backgroundColor: SURFACE }}>
         <ScrollView
           contentContainerStyle={{
             paddingHorizontal: 16,
-            paddingBottom: bottomPad, // ⬅️ enough space to scroll past the dock
+            paddingBottom: bottomPad, // enough space to scroll past the dock
             paddingTop: Math.max(12, insets.top + 6),
           }}
           keyboardShouldPersistTaps="handled"
@@ -504,7 +488,11 @@ export default function CreateScreen() {
             }}
           >
             {coverUri ? (
-              <Image source={{ uri: coverUri }} style={{ width: "100%", height: 200 }} resizeMode="cover" />
+              <Image
+                source={{ uri: coverUri }}
+                style={{ width: "100%", height: 200 }}
+                resizeMode="cover"
+              />
             ) : (
               <View style={{ padding: 20, alignItems: "center", justifyContent: "center" }}>
                 <View
@@ -521,8 +509,12 @@ export default function CreateScreen() {
                 >
                   <Text style={{ color: MUTED, fontSize: 24 }}>＋</Text>
                 </View>
-                <Text style={{ color: TEXT, fontSize: 16, fontWeight: "600" }}>Add Cover Photo</Text>
-                <Text style={{ color: MUTED, fontSize: 12, marginTop: 4 }}>Optional hero image</Text>
+                <Text style={{ color: TEXT, fontSize: 16, fontWeight: "600" }}>
+                  Add Cover Photo
+                </Text>
+                <Text style={{ color: MUTED, fontSize: 12, marginTop: 4 }}>
+                  Optional hero image
+                </Text>
               </View>
             )}
           </Pressable>
@@ -551,7 +543,10 @@ export default function CreateScreen() {
           </Field>
 
           {/* INGREDIENTS */}
-          <SectionHeader title="Ingredients" right={<SmallButton label="Add" onPress={addIngredient} />} />
+          <SectionHeader
+            title="Ingredients"
+            right={<SmallButton label="Add" onPress={addIngredient} />}
+          />
           {ingredients.length === 0 ? (
             <EmptyRow text="No ingredients yet" />
           ) : (
@@ -699,7 +694,8 @@ export default function CreateScreen() {
                   alignItems: "center",
                 }}
               >
-                <Text style={{ color: "#111", fontWeight: "800" }}>Publish Recipe</Text>
+                {/* SHORT LABEL SO IT DOESN'T CLIP */}
+                <Text style={{ color: "#111", fontWeight: "800" }}>Publish</Text>
               </Pressable>
             </View>
 
@@ -748,6 +744,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </View>
   );
 }
+
 function SectionHeader({ title, right }: { title: string; right?: React.ReactNode }) {
   return (
     <View style={{ marginTop: 12, marginBottom: 8, flexDirection: "row", alignItems: "center" }}>
@@ -756,6 +753,7 @@ function SectionHeader({ title, right }: { title: string; right?: React.ReactNod
     </View>
   );
 }
+
 function SmallButton({ label, onPress }: { label: string; onPress: () => void }) {
   return (
     <Pressable
@@ -771,6 +769,7 @@ function SmallButton({ label, onPress }: { label: string; onPress: () => void })
     </Pressable>
   );
 }
+
 function RowCard({ children }: { children: React.ReactNode }) {
   return (
     <View
@@ -786,6 +785,7 @@ function RowCard({ children }: { children: React.ReactNode }) {
     </View>
   );
 }
+
 function EmptyRow({ text }: { text: string }) {
   return (
     <View
