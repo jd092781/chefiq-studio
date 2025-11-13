@@ -1,10 +1,12 @@
 {
-  "cli": {
-    "version": ">= 3.0.0"
-  },
   "build": {
     "production": {
-      "node": "18.17.0"
+      "android": {
+        "buildType": "apk"
+      }
     }
+  },
+  "cli": {
+    "version": ">= 2.6.0"
   }
 }
