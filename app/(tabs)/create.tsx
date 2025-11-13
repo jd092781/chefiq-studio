@@ -1,11 +1,11 @@
 // app/(tabs)/create.tsx
+import MaterialCommunityIcons from "@expo-vector-icons/MaterialCommunityIcons";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
   FlatList,
@@ -322,113 +322,110 @@ export default function CreateScreen() {
   const DOCK_OUTER_H = DOCK_CARD_H + 12 + insets.bottom; // outer padding + safe area
   const bottomPad = Math.max(48, DOCK_OUTER_H + 16);
 
-  // ---- Category chips (with the exact same icons as Home, kept small) ----
-  const CategoryChips = useMemo(
-    () => (
-      <View onLayout={(e) => onCatLayout(e.nativeEvent.layout.width)} style={{ gap: 8 }}>
-        <ScrollView
-          ref={catScrollRef}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          onContentSizeChange={(w) => onCatContentSizeChange(w)}
-          onScroll={onCatScroll}
-          scrollEventThrottle={16}
-          contentContainerStyle={{ paddingRight: 8 }}
-        >
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            {CATEGORY_OPTIONS.map((opt) => {
-              const active = selectedPreset === opt.slug;
-              const Icon =
-                (opt as any).iconLib === "mci"
-                  ? (props: any) => (
-                      <MaterialCommunityIcons name={(opt as any).icon as any} {...props} />
-                    )
-                  : (props: any) => <Ionicons name={(opt as any).icon as any} {...props} />;
+  // Category chips JSX (no hooks here)
+  const CategoryChips = (
+    <View onLayout={(e) => onCatLayout(e.nativeEvent.layout.width)} style={{ gap: 8 }}>
+      <ScrollView
+        ref={catScrollRef}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        onContentSizeChange={(w) => onCatContentSizeChange(w)}
+        onScroll={onCatScroll}
+        scrollEventThrottle={16}
+        contentContainerStyle={{ paddingRight: 8 }}
+      >
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          {CATEGORY_OPTIONS.map((opt) => {
+            const active = selectedPreset === opt.slug;
+            const Icon =
+              (opt as any).iconLib === "mci"
+                ? (props: any) => (
+                    <MaterialCommunityIcons name={(opt as any).icon as any} {...props} />
+                  )
+                : (props: any) => <Ionicons name={(opt as any).icon as any} {...props} />;
 
-              return (
-                <Pressable
-                  key={opt.slug}
-                  onPress={() =>
-                    setSelectedPreset((prev) => (prev === opt.slug ? undefined : opt.slug))
-                  }
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 8,
-                    backgroundColor: active ? ORANGE : CARD,
-                    borderWidth: 1,
-                    borderColor: active ? ORANGE : BORDER,
-                    borderRadius: 999,
-                    paddingHorizontal: 12,
-                    paddingVertical: 8,
-                  }}
-                >
-                  {/* Small, same icons as Home */}
-                  <View
-                    style={{
-                      width: 24,
-                      height: 24,
-                      borderRadius: 12,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      backgroundColor: active ? "#111" : "#1a1a1a",
-                      borderWidth: 1,
-                      borderColor: active ? "#111" : BORDER,
-                    }}
-                  >
-                    <Icon size={16} color={ORANGE} />
-                  </View>
-                  <Text
-                    style={{
-                      color: active ? "#111" : TEXT,
-                      fontWeight: "800",
-                      fontSize: 13,
-                    }}
-                  >
-                    {opt.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </ScrollView>
-
-        {/* tiny custom scrollbar to hint horizontal scroll */}
-        {catContentW > catContainerW ? (
-          <View
-            style={{
-              height: 3,
-              backgroundColor: "#1e1e1e",
-              borderRadius: 2,
-              overflow: "hidden",
-            }}
-          >
-            {(() => {
-              const ratio = catContainerW / catContentW;
-              const thumbW = Math.max(24, catContainerW * ratio);
-              const maxScroll = catContentW - catContainerW;
-              const progress = Math.max(
-                0,
-                Math.min(1, catScrollX / Math.max(1, maxScroll))
-              );
-              const thumbLeft = (catContainerW - thumbW) * progress;
-              return (
+            return (
+              <Pressable
+                key={opt.slug}
+                onPress={() =>
+                  setSelectedPreset((prev) => (prev === opt.slug ? undefined : opt.slug))
+                }
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 8,
+                  backgroundColor: active ? ORANGE : CARD,
+                  borderWidth: 1,
+                  borderColor: active ? ORANGE : BORDER,
+                  borderRadius: 999,
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                }}
+              >
+                {/* Small, same icons as Home */}
                 <View
                   style={{
-                    width: thumbW,
-                    height: 3,
-                    borderRadius: 2,
-                    backgroundColor: ORANGE,
-                    transform: [{ translateX: thumbLeft }],
+                    width: 24,
+                    height: 24,
+                    borderRadius: 12,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: active ? "#111" : "#1a1a1a",
+                    borderWidth: 1,
+                    borderColor: active ? "#111" : BORDER,
                   }}
-                />
-              );
-            })()}
-          </View>
-        ) : null}
-      </View>
-    ),
-    [selectedPreset, catContainerW, catContentW, catScrollX]
+                >
+                  <Icon size={16} color={ORANGE} />
+                </View>
+                <Text
+                  style={{
+                    color: active ? "#111" : TEXT,
+                    fontWeight: "800",
+                    fontSize: 13,
+                  }}
+                >
+                  {opt.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </ScrollView>
+
+      {/* tiny custom scrollbar to hint horizontal scroll */}
+      {catContentW > catContainerW ? (
+        <View
+          style={{
+            height: 3,
+            backgroundColor: "#1e1e1e",
+            borderRadius: 2,
+            overflow: "hidden",
+          }}
+        >
+          {(() => {
+            const ratio = catContainerW / catContentW;
+            const thumbW = Math.max(24, catContainerW * ratio);
+            const maxScroll = catContentW - catContainerW;
+            const progress = Math.max(
+              0,
+              Math.min(1, catScrollX / Math.max(1, maxScroll))
+            );
+            const thumbLeft = (catContainerW - thumbW) * progress;
+            return (
+              <View
+                style={{
+                  width: thumbW,
+                  height: 3,
+                  borderRadius: 2,
+                  backgroundColor: ORANGE,
+                  transform: [{ translateX: thumbLeft }],
+                }}
+              />
+            );
+          })()}
+        </View>
+      ) : null}
+    </View>
   );
 
   return (
