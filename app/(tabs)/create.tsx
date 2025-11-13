@@ -106,7 +106,6 @@ export default function CreateScreen() {
   const scrollRef = useRef<ScrollView>(null);
 
   const scrollToEnd = useCallback(() => {
-    // next frame so content has rendered
     requestAnimationFrame(() => {
       scrollRef.current?.scrollToEnd({ animated: true });
     });
@@ -155,7 +154,8 @@ export default function CreateScreen() {
   // ---- Helpers: updaters for lists ----
   const addIngredient = useCallback(() => {
     setIngredients((prev) => [...prev, { id: newId(), text: "" }]);
-  }, []);
+    scrollToEnd();
+  }, [scrollToEnd]);
 
   const updateIngredient = useCallback((iid: string, text: string) => {
     setIngredients((prev) => prev.map((i) => (i.id === iid ? { ...i, text } : i)));
@@ -167,7 +167,6 @@ export default function CreateScreen() {
 
   const addStep = useCallback(() => {
     setSteps((prev) => [...prev, { id: newId(), text: "" }]);
-    // after adding a step, scroll so the new field is visible above the keyboard
     scrollToEnd();
   }, [scrollToEnd]);
 
@@ -443,7 +442,7 @@ export default function CreateScreen() {
           ref={scrollRef}
           contentContainerStyle={{
             paddingHorizontal: 16,
-            paddingBottom: bottomPad, // enough space to scroll past the dock
+            paddingBottom: bottomPad,
             paddingTop: Math.max(12, insets.top + 6),
           }}
           keyboardShouldPersistTaps="handled"
@@ -600,16 +599,13 @@ export default function CreateScreen() {
                     placeholder="e.g., 2 tbsp olive oil"
                     placeholderTextColor={MUTED}
                     style={rowInputStyle}
+                    onFocus={scrollToEnd}
                   />
                   <Pressable
                     onPress={() => removeIngredient(item.id)}
                     style={pillDelete}
                   >
-                    <Text
-                      style={{ color: "#111", fontWeight: "800" }}
-                    >
-                      Del
-                    </Text>
+                    <Text style={{ color: "#111", fontWeight: "800" }}>Del</Text>
                   </Pressable>
                 </RowCard>
               )}
@@ -654,11 +650,7 @@ export default function CreateScreen() {
                     onPress={() => removeStep(item.id)}
                     style={pillDelete}
                   >
-                    <Text
-                      style={{ color: "#111", fontWeight: "800" }}
-                    >
-                      Del
-                    </Text>
+                    <Text style={{ color: "#111", fontWeight: "800" }}>Del</Text>
                   </Pressable>
                 </RowCard>
               )}
@@ -744,9 +736,7 @@ export default function CreateScreen() {
                   alignItems: "center",
                 }}
               >
-                <Text style={{ color: TEXT, fontWeight: "700" }}>
-                  Preview
-                </Text>
+                <Text style={{ color: TEXT, fontWeight: "700" }}>Preview</Text>
               </Pressable>
 
               <Pressable
@@ -759,9 +749,7 @@ export default function CreateScreen() {
                   alignItems: "center",
                 }}
               >
-                <Text style={{ color: "#111", fontWeight: "800" }}>
-                  Publish
-                </Text>
+                <Text style={{ color: "#111", fontWeight: "800" }}>Publish</Text>
               </Pressable>
             </View>
 
@@ -793,9 +781,7 @@ export default function CreateScreen() {
                   alignItems: "center",
                 }}
               >
-                <Text style={{ color: "#111", fontWeight: "800" }}>
-                  + Step
-                </Text>
+                <Text style={{ color: "#111", fontWeight: "800" }}>+ Step</Text>
               </Pressable>
             </View>
           </View>
